@@ -1,0 +1,25 @@
+
+PROG = main
+MMCU = atmega328p
+CPUFREQ = 1000000
+
+PORT = usb
+TARGET = m88p
+MEMORY = flash
+TYPE = w
+
+CC = avr-gcc
+OBJCOPY = avr-objcopy
+AVRDUDE = avrdude
+
+$(PROG).ihex : $(PROG)
+	<TAB>$(OBJCOPY) -j .text -j .data -O ihex $< $@
+
+$(PROG) : $(PROG).o
+	<TAB>$(CC) -g -O2 -mmcu=$(MMCU) $< -o $@
+
+.c.o :
+	<TAB>$(CC) -g -O2 -mmcu=$(MMCU) -DF_CPU=$(CPUFREQ)UL -c -o $@ $<
+
+write :
+	<TAB>sudo $(AVRDUDE) -c avrispmkII -P $(PORT) -p $(TARGET) -U $(MEMORY):$(TYPE):$(PROG).ihex #<sudoから一行で>
