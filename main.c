@@ -10,10 +10,10 @@ print_expr (SExpr ** expr)
         printf("%s", expr[0]->_data);
     }
 
-    if (expr[0]->_type != NIL){
+    if (expr[0] != NULL){
 
         int i = 1;
-        while (expr[i]){
+        while (expr[i] != NULL){
             switch (expr[i]->_type){
                 case NUMBER:
                     printf(" %s", expr[i]->_data);
@@ -36,7 +36,7 @@ print_expr (SExpr ** expr)
 int
 main(void){
 
-    SExpr ** head;
+    SExpr * head[MAX_LIST];
 
     head[0] = (SExpr *)malloc(sizeof(SExpr));
     head[0]->_type = OPERATION;
@@ -50,8 +50,7 @@ main(void){
     head[2]->_type = CONS;
     head[2]->_data = "0";
 
-    SExpr ** nexter;
-    nexter = (SExpr **)malloc(sizeof(SExpr **));
+    SExpr * nexter[MAX_LIST];
 
     nexter[0] = (SExpr *)malloc(sizeof(SExpr));
     nexter[0]->_type = OPERATION;
@@ -65,17 +64,13 @@ main(void){
     nexter[2]->_type = NUMBER;
     nexter[2]->_data = "2";
 
-    nexter[3] = (SExpr *)malloc(sizeof(SExpr));
-    nexter[3]->_type = NIL;
-
     head[2]->_next = nexter;
 
     head[3] = (SExpr *)malloc(sizeof(SExpr));
     head[3]->_type = CONS;
     head[3]->_data = "0";
 
-    SExpr ** third;
-    third = (SExpr **)malloc(sizeof(SExpr **));
+    SExpr * third[MAX_LIST];
 
     third[0] = (SExpr *)malloc(sizeof(SExpr));
     third[0]->_type = OPERATION;
@@ -89,13 +84,8 @@ main(void){
     third[2]->_type = NUMBER;
     third[2]->_data = "1";
 
-    third[3] = (SExpr *)malloc(sizeof(SExpr));
-    third[3]->_type = NIL;
-
     head[3]->_next = third;
 
-    head[4] = (SExpr *)malloc(sizeof(SExpr));
-    head[4]->_type = NIL;
 
     print_expr(head);
 
