@@ -47,7 +47,7 @@ main (void)
                 int i;
                 for (i = 0;i < 100;i++){
                     if (tokens[i] != NULL){
-                        printf("%s.",tokens[i]);
+                        printf("%s",tokens[i]);
                     }else{
                         break;
                     }
