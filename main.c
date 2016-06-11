@@ -34,28 +34,31 @@ main (void)
     char * tokens[100];
 
     // Set the initial prompt
-    snprintf(prompt, sizeof(prompt), "user> ");
+    snprintf(prompt, sizeof(prompt), "> ");
+    head[0] = (Expr *)malloc(sizeof(Expr));
 
     for(;;){
-        head[0] = (Expr *)malloc(sizeof(Expr));
         ast = READ(prompt);
-        if (!ast) return 0;
-        tokenize(ast,tokens);
-        exp = EVAL(ast, NULL);
-        if (strcmp(exp, "show")){
-            int i;
-            for (i = 0;i < 100;i++){
-                if (tokens[i]){
-                    printf("%s.",tokens[i]);
-                }else{
-                    break;
+        if (!ast) {return 0;}
+        else{
+            tokenize(ast,tokens);
+            exp = EVAL(ast, NULL);
+            if (strcmp(exp, "show")){
+                int i;
+                for (i = 0;i < 100;i++){
+                    if (tokens[i] != NULL){
+                        printf("%s.",tokens[i]);
+                    }else{
+                        break;
+                    }
+                    printf("\n");
                 }
-                printf("\n");
+            }else{
+                puts(PRINT(exp));
             }
-        }else{
-        puts(PRINT(exp));
+            freeTokenize(tokens);
         }
-        free(head[0]);
         free(ast); // Free input string
     }
+    free(head[0]);
 }
