@@ -8,15 +8,15 @@ tokenize (char * _str , char ** _tokens)
 {
     int i = 0;
     char * olds = _str;
-    char sym  = ' ';
+    char space  = ' ';
 
-    while (sym && *_str){
-        while (*_str && (sym != *_str)) _str++;
-        *_str ^= sym = *_str;
+    while (space && *_str){
+        while (*_str && (space != *_str)) _str++;
+        *_str ^= space = *_str;
         _tokens[i] = (char *)malloc(sizeof(char *));
         strcpy(_tokens[i] , olds);
         i++;
-        *_str++ ^= sym;
+        *_str++ ^= space;
         olds = _str;
     }
     _tokens[i] = NULL;
