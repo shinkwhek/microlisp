@@ -5,6 +5,7 @@
 #include <readline/readline.h>
 
 #include "types.h"
+#include "parser.h"
 
 char *READ(char prompt[]) {
     char *line;
@@ -26,10 +27,11 @@ char *PRINT(char *exp) {
 int
 main (void)
 {
-    Expr ** head;
+    Expr * head[100];
 
     char *ast, *exp;
     char prompt[100];
+    char * tokens[100];
 
     // Set the initial prompt
     snprintf(prompt, sizeof(prompt), "user> ");
@@ -38,9 +40,21 @@ main (void)
         head[0] = (Expr *)malloc(sizeof(Expr));
         ast = READ(prompt);
         if (!ast) return 0;
+        tokenize(ast,tokens);
         exp = EVAL(ast, NULL);
+        if (strcmp(exp, "show")){
+            int i;
+            for (i = 0;i < 100;i++){
+                if (tokens[i]){
+                    printf("%s.",tokens[i]);
+                }else{
+                    break;
+                }
+                printf("\n");
+            }
+        }else{
         puts(PRINT(exp));
-
+        }
         free(head[0]);
         free(ast); // Free input string
     }
