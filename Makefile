@@ -1,11 +1,7 @@
-PROG = main type
-STET = -Wall -ledit
-COMPILE = gcc
+PROG = main.c types.c
 
-OUTF = lisp
+lisp: $(PROG)
+	gcc -Wall -o $@ -ledit $^
 
-$(OUTF): $(PROG).o
-	$(COMPILE) $(STET) -o $@ $^
-
-$(PROG).o: $(PROG).c
-	$(COMPILE) $(STET) -c $?
+clean:
+	rm -f lisp
