@@ -1,13 +1,26 @@
-PROGRAM = main
-COMPILE = gcc
-OUTPUT = avrlisp
+PROG = main.c types.c parser.c
+CFLAG=-Wall -ledit
+COMPILE=gcc
 
-.c.o: ${PROGRAM}.c
-	$(COMPILE) -c $?
+.c.o:
+	$(COMPILE) $(CFLAG) -c $?
 
-avrlisp: ${PROGRAM}.o
-	$(COMPILE) -o $@ $^
+lisp: ${PROG:.c=.o}
+	$(COMPILE) $(CFLAG) -o $@ $^
 
+.PHONY: run debug gdb valgrind
+
+run:
+	./list
+
+debug: $(PROG)
+	$(COMPILE) $(CFLAG) -g -O0 $^ -o DEBUG
+
+gdb:
+	gdb DEBUG
+
+valgrind:
+	valgrind --leak-check=full ./DEBUG
 
 clean:
-	rm -f $(PROGRAM).o $(OUTPUT)
+	rm -f lisp ${PROG:.c=.o}
