@@ -13,7 +13,7 @@ lisp: ${PROG:.c=.o}
 .PHONY: run debug gdb valgrind
 
 run:
-	./list
+	./lisp
 
 debug: $(PROG)
 	$(COMPILE) $(CFLAGS) -O0 $^ -o DEBUG
