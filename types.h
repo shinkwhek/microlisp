@@ -12,23 +12,17 @@ typedef enum {
 
 
 typedef struct Expr {
-    /*
-     * Expr := Atom | Expr
-     */
+  /*
+   * Expr := Atom | Expr
+   */
 
-    Type type;
+  Type type;
 
-    // atom := NIL | NUMBER | SYMBOL | CAR
-    void * atom;
+  /* atom := NIL | NUMBER | SYMBOL | CAR */
+  void * atom;
 
-    // next := CDR
-    struct Expr * next;
+  /* next := CDR */
+  struct Expr * next;
 } Expr;
-
-// =========================
-//     Functions
-// =========================
-Expr * getCarAsExpr (Expr *);
-Expr * getCdrAsExpr (Expr *);
 
 #endif // _TYPES_H
