@@ -27,38 +27,39 @@ char *PRINT(char *exp) {
 int
 main (void)
 {
-    Expr * head[100];
+  Expr * head[100];
 
-    char *ast, *exp;
-    char prompt[100];
-    char * tokens[100];
+  char *ast, *exp;
+  char prompt[100];
+  char * tokens[100];
 
-    // Set the initial prompt
-    snprintf(prompt, sizeof(prompt), "> ");
-    head[0] = (Expr *)malloc(sizeof(Expr));
+  // Set the initial prompt
+  snprintf(prompt, sizeof(prompt), "> ");
+  head[0] = (Expr *)malloc(sizeof(Expr));
 
-    for(;;){
-        ast = READ(prompt);
-        if (!ast) {return 0;}
-        else{
-            tokenize(ast,tokens);
-            exp = EVAL(ast, NULL);
-            if (strcmp(exp, "show")){
-                int i;
-                for (i = 0;i < 100;i++){
-                    if (tokens[i] != NULL){
-                        printf("%s",tokens[i]);
-                    }else{
-                        break;
-                    }
-                    printf("\n");
-                }
-            }else{
-                puts(PRINT(exp));
-            }
-            freeTokenize(tokens);
+  for(;;){
+    ast = READ(prompt);
+    if (!ast) {
+      return 0;
+    }else{
+      tokenize(ast,tokens);
+      exp = EVAL(ast, NULL);
+      if (strcmp(exp, "show")){
+        int i;
+        for (i = 0;i < 100;i++){
+          if (tokens[i] != NULL){
+            printf("%s",tokens[i]);
+          }else{
+            break;
+          }
+          printf("\n");
         }
-        free(ast); // Free input string
+      }else{
+        puts(PRINT(exp));
+      }
+      freeTokenize(tokens);
     }
-    free(head[0]);
+    free(ast); // Free input string
+  }
+  free(head[0]);
 }
