@@ -1,4 +1,4 @@
-PROG = main.c types.c parser.c
+PROG = main.c parser.c
 
 CFLAGS = -g -Wall -ledit
 
