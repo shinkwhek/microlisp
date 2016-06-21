@@ -27,6 +27,14 @@ char *PRINT(char *exp) {
 int
 main (void)
 {
+
+  char a = '9';
+
+  Expr *r = makeNUMBER(a);
+
+  printf("%d\n", *(int *)(r->atom));
+  
+  /*
   Expr * head[100];
 
   char *ast, *exp;
@@ -62,4 +70,6 @@ main (void)
     free(ast); // Free input string
   }
   free(head[0]);
+
+  */
 }
