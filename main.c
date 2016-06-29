@@ -82,7 +82,7 @@ ATOM *makeFUNC (char *_name)
  *********************************************/
 int main (void)
 {
-  CONS **head = NULL;
+  CONS *head[50];
 
   head[0] = alloc(tNIL);
 
