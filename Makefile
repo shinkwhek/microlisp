@@ -1,6 +1,6 @@
-PROG = main.c parser.c
+PROG = main.c
 
-CFLAGS = -g -Wall -ledit
+CFLAGS = -g -Wall
 
 COMPILE=gcc
 
