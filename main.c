@@ -43,10 +43,13 @@ typedef struct CONS {
   
 } CONS;
 
+static CONS *NIL   = &(CONS){tNIL};
+static CONS *TRUE  = &(CONS){tTRUE};
+static CONS *False = &(CONS){tFalse};
 /**********************************************
      Memory manegement
  *********************************************/
-CONS *alloc (int _type)
+static CONS *alloc (int _type)
 {
   /* GCなし! \(^o^)/ */
   CONS *_cons = (CONS *)malloc(sizeof(CONS));
@@ -55,41 +58,83 @@ CONS *alloc (int _type)
   _cons->cdr  = NULL;
   return _cons;
 }
-ATOM *makeNumber (int _value)
+static ATOM *makeNumber (int _value)
 {
   ATOM *atm = (ATOM *)malloc(sizeof(int));
   atm->value = _value;
   return atm;
 }
-ATOM *makeSYMBOL (char *_name)
+static ATOM *makeSYMBOL (char *_name)
 {
   ATOM *atm = (ATOM *)malloc(sizeof(char));
   strcpy(atm->symbol , _name);
   return atm;
 }
-ATOM *makeFUNC (char *_name)
+static ATOM *makeFUNC (char *_name)
 {
   ATOM *atm = (ATOM *)malloc(sizeof(char*));
   strcpy(atm->fn , _name);
   return atm;
 }
 
+static int readNumber (char *_str)
+{
+  int i = 0;
+  int out = 0;
+  while(isdigit(_str[i]) || _str[i] != ')'){
+    out = out*10 + (_str[i]-'0');
+    ++i;
+  }
+  return out;
+}
+/**********************************************
+        Parser
+ *********************************************/
 
+CONS *newCons (void *_car, void *_cdr , int _type)
+{
+  CONS *new = alloc(_type);
+  new->car = _car;
+  new->cdr = _cdr;
+  return new;
+}
 
+CONS **parse (char *str){
+  CONS *ret = NULL;
+  int i = 0;
+  while (str[i++] != NULL){
+    
+  }
+}
+
+char **tokenize (char *_str)
+{
+  char separater[] = " ";
+  char **out = NULL;
+  char *tok = strtok(_str, separater);
+  int i = 0;
+  while(tok != NULL){
+    out[i] = (char *)malloc(sizeof(char *));
+    strcpy(out[i],tok);
+    ++i;
+    tok = strtok(NULL,separater);
+  }
+  return out;
+}
 
 /**********************************************
              Main Loop
  *********************************************/
 int main (void)
 {
-  CONS *head[50];
+  
+  char *str = "1234 a a 5";
+  char ** tokens = tokenize(str);
 
-  head[0] = alloc(tNIL);
-
-  head[1] = alloc(tNUM);
-  head[1]->car = makeNumber(5);
-
-  printf("%d\n", ((ATOM *)head[1]->car)->value);
+  int i = 0;
+  while(tokens[i] != NULL){
+    printf("%s\n",tokens[i]);
+  }
   
   return 0;
 }
