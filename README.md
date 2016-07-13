@@ -8,9 +8,19 @@ Small LISP on AVR.
 
 ## Documentation
 
+This is a Lisp interpreter, which is so small, on AVR micro computer.
+
+
 ...
 
 ## Build
+
+```shell
+$ make
+```
+```shell
+$ ./lisp
+`````
 
 ## Write
 
