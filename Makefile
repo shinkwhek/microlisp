@@ -10,21 +10,18 @@ COMPILE=gcc
 lisp: ${PROG:.c=.o}
 	$(COMPILE) $(CFLAGS) -o $@ $^
 
-.PHONY: run debug gdb valgrind
+.PHONY: run gdb valgrind
 
 run:
 	./lisp
 
-debug: $(PROG)
+gdb: $(PROG)
 	$(COMPILE) $(CFLAGS) -O0 $^ -o DEBUG
-
-gdb:
-	gdb DEBUG
-	rm -f DEBUG
+	sudo gdb DEBUG
 
 valgrind:
+	$(COMPILE) $(CFLAGS) -O0 $^ -o DEBUG
 	valgrind --leak-check=full ./DEBUG
-	rm -f DEBUG
 
 clean:
 	rm -f lisp ${PROG:.c=.o}
