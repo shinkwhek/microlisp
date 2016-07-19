@@ -15,7 +15,7 @@
 /**********************************************
                   TYPES
  *********************************************/
-#define MAX_FUNC_NAME 10
+static const int MAX_FUNC_NAME = 10;
 
 enum {
   tNIL = 0,
@@ -24,25 +24,25 @@ enum {
   tCONS,
   tFUN,
   tTRUE,
-  tFalse,
+  tFalse
 };
 
 typedef struct ATOM {
   union {
     int value;
-    char symbol[MAX_FUNC_NAME];
+    char symbol[1];
+    char *fn;
   };
 } ATOM;
 typedef struct CONS {
   int type;
-
   /* ATOM */
   void *car;
   void *cdr;
-  
 } CONS;
 typedef struct ENV {
   char name[MAX_FUNC_NAME];
+  CONS *efc;
   struct ENV *next;
 } ENV;
 
@@ -52,6 +52,26 @@ static CONS *NIL   = &(CONS){tNIL};
 static CONS *TRUE  = &(CONS){tTRUE};
 static CONS *False = &(CONS){tFalse};
 
+#define DEFLAMBDA(_name,_root,_effect) \
+  char *name = (char *)malloc(sizeof(char *)); \
+  strcpy(name, _name); \
+  _root = addEnv(name,_root,_effect);
+
+/**********************************************
+     Tiny tool func
+ *********************************************/
+#define getCarAsIntValue(_root)     (((ATOM*)_root->car)->value)
+#define getCarAsCharSymbol(_root)   (((ATOM*)_root->car)->symbol)
+#define getCarAsCharFunction(_root) (((ATOM*)_root->car)->fn)
+#define getCarAsConsCell(_root)     ((CONS*)_root->car)
+#define getCdrAsConsCell(_root)     ((CONS*)_root->cdr)
+
+static CONS *ignoreFirstNILCons (CONS *_root)
+{
+  CONS *r = _root;
+  if (r == NIL) r = getCdrAsConsCell(_root);
+  return r;
+}
 /**********************************************
      Memory manegement
  *********************************************/
@@ -70,10 +90,17 @@ static ATOM *makeNumber (int _value)
   atm->value = _value;
   return atm;
 }
-static ATOM *makeSYMBOL (char *_name)
+static ATOM *makeSYMBOL (char _name)
 {
-  ATOM *atm = (ATOM *)malloc(sizeof(char*));
-  strcpy(atm->symbol, _name);
+  ATOM *atm = (ATOM *)malloc(sizeof(char));
+  strcpy(atm->symbol, &_name);
+  return atm;
+}
+static ATOM *makeFUNCTION (char *_name)
+{
+  ATOM *atm = (ATOM *)malloc(sizeof(ATOM *));
+  atm->fn = (char *)malloc(sizeof(char *));
+  strcpy(atm->fn, _name);
   return atm;
 }
 static int readNumber (char *_str)
@@ -86,7 +113,7 @@ static int readNumber (char *_str)
   }
   return out;
 }
-static char *readSYMBOL (char *_str)
+static char *readFUNCTION (char *_str)
 {
   int i = 0;
   char *r = (char *)malloc(sizeof(char *));
@@ -99,42 +126,49 @@ static char *readSYMBOL (char *_str)
 
 static void printCons (CONS *cons, int nest)
 {
-  if (cons == NIL){
-    printf("\n");
+  /*--------------type NIL----------------*/
+  if (cons == NIL || !cons){
+    printf("%*s%d::NIL \n",nest,"",nest);
     return;
-  }else
-    
-  if (cons->type == tNUM){
-    printf("%*s%d::tNUM::%d\n",nest,"",nest,((ATOM *)cons->car)->value);
-    printCons((CONS *)(cons->cdr) , nest);
-  }else
-  if (cons->type == tSYM){
-    printf("%*s%d::tSYM::%s\n",nest,"",nest,((ATOM *)cons->car)->symbol);
-    printCons((CONS *)(cons->cdr) , nest);
-  }else
-  if (cons->type == tCONS){
-    printCons((CONS *)(cons->car), nest + 1);
-    printCons((CONS *)(cons->cdr), nest);
+  /*-------------type NUMBER--------------*/
+  }else if (cons->type == tNUM){
+    printf("%*s%d::tNUM::%d\n",nest,"",nest, getCarAsIntValue(cons));
+    printCons( getCdrAsConsCell(cons) , nest);
+  /*-------------type SYMBOL--------------*/
+  }else if (cons->type == tSYM){
+    printf("%*s%d::tSYM::%s\n",nest,"",nest, getCarAsCharSymbol(cons));
+    printCons( getCdrAsConsCell(cons) , nest);
+  /*-------------type Function------------*/
+  }else if (cons->type == tFUN){
+    printf("%*s%d::tFUN::%s\n",nest,"",nest,getCarAsCharFunction(cons));
+    printCons( getCdrAsConsCell(cons) , nest);
+  /*------------type Cons Cell------------*/
+  }else if (cons->type == tCONS){
+    printCons( getCarAsConsCell(cons), nest + 1);
+    printCons( getCdrAsConsCell(cons), nest);
+  /*------------type NOT Know-------------*/
+  }else{
+    printf("i dont know.\n");
   }
-  
 }
 /**********************************************
            Env
  *********************************************/
-static int find (char *key, ENV *_env)
+static CONS *find (char *key, ENV *_env)
 {
   ENV *e = NULL;
   for (e = _env; e != NULL; e = e->next){
     if (strcmp(e->name , key) == 0){
-      return 1;
+      return ((CONS *)e->efc);
     }
   }
-  return 0;
+  return NIL;
 }
-static ENV *addEnv (char *_name , ENV *_root)
+static ENV *addEnv (char *_name , ENV *_root, CONS* _effect)
 {
   ENV *e = (ENV *)malloc(sizeof(ENV *));
   strcpy(e->name , _name);
+  e->efc = _effect;
   e->next = _root;
   return e;
 }
@@ -156,11 +190,11 @@ static CONS *nReverse (CONS *_cons)
   CONS *ret = NIL;
   while (_cons != NIL ){
     CONS *tmp = _cons;
-    _cons = (CONS *)(_cons->cdr);
+    _cons = getCdrAsConsCell(_cons);
     tmp->cdr = ret;
     ret = tmp;
   }
-  return ret;
+  return ignoreFirstNILCons(ret);
 }
 static int waitBrackets (char *str)
 {
@@ -175,17 +209,17 @@ static int waitBrackets (char *str)
   return i;
 }
 
-static CONS *parse (char *str , ENV *_env){
+static CONS *parse (char *str){
   CONS *ret = NIL;
   int i = 0;
-  while (str[i] != '\0' && str[i]){
+  while (str[i] != '\0' && str[i] != EOF ){
     /*-----------------------------------------*/
     if (str[i] == ' ') { /* ignore space , ¥n */
       ++i;
       continue;
     /*-----------------------------------------*/
     }else if (str[i] == '(') { /* init S-Exprs */
-      ret = newCons( parse(&str[i + 1], _env),
+      ret = newCons( parse(&str[i + 1]),
                      ret,
                      tCONS);
       i += waitBrackets(&str[i+1]);
@@ -200,10 +234,10 @@ static CONS *parse (char *str , ENV *_env){
       while(str[i] != ' ' && str[i] != ')' && str[i]){i++;}
       if (str[i] == ')'){break;}
     /*---------------------------------------------------------------------------------*/
-    }else if (isalpha(str[i]) || strchr(symbol_chars,str[i])){/* make S-Expr of Symbol */
-      ret = newCons( makeSYMBOL(readSYMBOL(&str[i])),
+    }else if (isalpha(str[i]) || strchr(symbol_chars,str[i])){/* make S-Expr of function */
+      ret = newCons( makeFUNCTION(readFUNCTION(&str[i])),
                      ret,
-                     tSYM);
+                     tFUN);
       while (str[i] != ' ' && str[i] != ')' && str[i]){i++;}
       if (str[i] == ')'){break;}
     }
@@ -212,7 +246,19 @@ static CONS *parse (char *str , ENV *_env){
   }
   return nReverse(ret);
 }
+/**********************************************
+       Eval
+*********************************************/
 
+static CONS *eval (CONS *_cons , ENV *_env)
+{
+  switch (_cons->type){
+  case tNUM:
+    return _cons;
+  }
+
+  return NIL;
+}
 
 /**********************************************
              Main Loop
@@ -220,13 +266,22 @@ static CONS *parse (char *str , ENV *_env){
 int main (void)
 {
   ENV *allEnv = NULL;
+  char str[100];
   
-  char str[] = "(defn (fn x) (+ 1 2 (* x 10) 100))";
+  while(1){
 
-  CONS *root = parse(str, allEnv);
+    fgets(str,100,stdin);
+    
+    CONS *root = parse(str);
+    
+    printCons(root,0);
 
-  printCons(root,0);
-  
+    root = eval(root, allEnv);
+    
+    printf("=> %d\n", getCarAsIntValue(root));
+
+    
+  }
   return 0;
 }
 
