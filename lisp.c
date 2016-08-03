@@ -40,15 +40,18 @@ static SExpr *NIL = &(SExpr){tNIL};
 /**********************************************
                Memory manegement
  *********************************************/
+
 static SExpr *alloc (int _typeName)
 {
-  /* GCなし! /(^o^)\ */
-  SExpr *_cons = (SExpr *)malloc(sizeof(SExpr));
+   SExpr *_cons = (SExpr *)malloc(sizeof(SExpr));
   _cons->type = _typeName;
   _cons->car = NULL;
   _cons->cdr = NULL;
   return _cons;
 }
+/**********************************************
+        Tiny
+ *********************************************/
 static SExpr *newCons (void *_car , void *_cdr)
 {
   SExpr *new = alloc(tCONS);
