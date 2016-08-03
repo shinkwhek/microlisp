@@ -46,7 +46,7 @@ typedef struct ENV {
   struct ENV *next;
 } ENV;
 
-const char symbol_chars[] = "~!@#$%^&*-_=+:/?<>";
+const char symbol_chars[] = "!%^*-=+/<>";
 
 static CONS *NIL   = &(CONS){tNIL};
 static CONS *TRUE  = &(CONS){tTRUE};
@@ -61,7 +61,7 @@ static CONS *False = &(CONS){tFalse};
      Tiny tool func
  *********************************************/
 #define getCarAsIntValue(_root)     (((ATOM*)_root->car)->value)
-#define getCarAsCharSymbol(_root)   (((ATOM*)_root->car)->symbol)
+#define getCarAsCharSymbol(_root)   (((ATOM*)_root->car)->symbol[0])
 #define getCarAsCharFunction(_root) (((ATOM*)_root->car)->fn)
 #define getCarAsConsCell(_root)     ((CONS*)_root->car)
 #define getCdrAsConsCell(_root)     ((CONS*)_root->cdr)
@@ -92,8 +92,10 @@ static ATOM *makeNumber (int _value)
 }
 static ATOM *makeSYMBOL (char _name)
 {
-  ATOM *atm = (ATOM *)malloc(sizeof(char));
-  strcpy(atm->symbol, &_name);
+  ATOM *atm = (ATOM *)malloc(sizeof(ATOM *));
+  atm->symbol = (char *)malloc(sizeof(char));
+  atm->symbol = _name;
+  // strcpy(atm->symbol , &_name);
   return atm;
 }
 static ATOM *makeFUNCTION (char *_name)
@@ -136,11 +138,11 @@ static void printCons (CONS *cons, int nest)
     printCons( getCdrAsConsCell(cons) , nest);
   /*-------------type SYMBOL--------------*/
   }else if (cons->type == tSYM){
-    printf("%*s%d::tSYM::%s\n",nest,"",nest, getCarAsCharSymbol(cons));
+    printf("%*s%d::tSYM::%c\n",nest,"",nest, getCarAsCharSymbol(cons));
     printCons( getCdrAsConsCell(cons) , nest);
   /*-------------type Function------------*/
   }else if (cons->type == tFUN){
-    printf("%*s%d::tFUN::%s\n",nest,"",nest,getCarAsCharFunction(cons));
+    printf("%*s%d::tFUN::%s\n",nest,"",nest, getCarAsCharFunction(cons));
     printCons( getCdrAsConsCell(cons) , nest);
   /*------------type Cons Cell------------*/
   }else if (cons->type == tCONS){
@@ -233,8 +235,15 @@ static CONS *parse (char *str){
                      tNUM);
       while(str[i] != ' ' && str[i] != ')' && str[i]){i++;}
       if (str[i] == ')'){break;}
-    /*---------------------------------------------------------------------------------*/
-    }else if (isalpha(str[i]) || strchr(symbol_chars,str[i])){/* make S-Expr of function */
+    /* ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- */
+    }else if (isalpha(str[i]) && strchr(symbol_chars,str[i])){
+      ret = newCons( makeSYMBOL(str[i]),
+                     ret,
+                     tSYM);
+      while (str[i] != ' ' && str[i] != ')' && str[i]){i++;}
+      if (str[i] == ')'){break;}
+    /* ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- */
+    }else if (isalpha(str[i])){/* make S-Expr of function */
       ret = newCons( makeFUNCTION(readFUNCTION(&str[i])),
                      ret,
                      tFUN);
