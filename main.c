@@ -236,7 +236,7 @@ static CONS *parse (char *str){
       while(str[i] != ' ' && str[i] != ')' && str[i]){i++;}
       if (str[i] == ')'){break;}
     /* ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- ---- */
-    }else if (isalpha(str[i]) && strchr(symbol_chars,str[i])){
+    }else if (strchr(symbol_chars,str[i])){
       ret = newCons( makeSYMBOL(str[i]),
                      ret,
                      tSYM);
