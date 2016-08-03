@@ -1,4 +1,4 @@
-PROG = main.c
+PROG = lisp.c
 
 CFLAGS = -g -Wall
 
