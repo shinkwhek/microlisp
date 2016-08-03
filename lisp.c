@@ -59,6 +59,7 @@ static SExpr *newCons (void *_car , void *_cdr)
 static SExpr *newNUM (int _value , void *_cdr)
 {
   SExpr *new = alloc(tNUM);
+  new->car = (int *)malloc(sizeof(int));
   *((int *)new->car) = _value;
   new->cdr = _cdr;
   return new;
@@ -66,6 +67,7 @@ static SExpr *newNUM (int _value , void *_cdr)
 static SExpr *newSYM (char *_name , void *_cdr)
 {
   SExpr *new = alloc(tSYM);
+  new->car = (char *)malloc(sizeof(char *));
   strcpy(((char *)new->car) , _name);
   new->cdr = _cdr;
   return new;
@@ -73,6 +75,7 @@ static SExpr *newSYM (char *_name , void *_cdr)
 static SExpr *newFUN (char *_name , void *_cdr)
 {
   SExpr *new = alloc(tFUN);
+  new->car = (char *)malloc(sizeof(char *));
   strcpy(((char *)new->car) , _name);
   new->cdr = _cdr;
   return new;
@@ -106,9 +109,9 @@ static char *readCharToken (char *_str)
  *********************************************/
 static SExpr *nReverse (SExpr *_expr)
 {
-   CONS *ret = NIL;
+   SExpr *ret = NIL;
   while (_expr != NIL ){
-    CONS *tmp = _expr;
+    SExpr *tmp = _expr;
     _expr = getCdrAsCons(_expr);
     tmp->cdr = ret;
     ret = tmp;
@@ -131,7 +134,7 @@ static SExpr *parse (char *str)
 {
   SExpr *ret = NIL;
   int i = 0;
-  while (str[i] != '\0' && str[i] != EOF){
+  while (str[i] != '\0'){
     /* ---- ---- ---- ---- ---- ---- ---- */
     if (str[i] == ' '){ /* Ignore space */
       ++i;
@@ -151,7 +154,7 @@ static SExpr *parse (char *str)
       while( str[i] != ' ' && str[i] != ')' && str[i]){i++;}
       if (str[i] == ')'){break;}
     /* ---- ---- ---- ---- ---- ---- ---- */
-    }else if ( isalpha(str[i]) && strchr(symbol_chars,str[i]) ){/* Make S-Expr of Symbol */
+    }else if ( strchr(symbol_chars, str[i]) ){/* Make S-Expr of Symbol */
       ret = newSYM ( readCharToken(&str[i]),
                      ret);
       while(str[i] != ' ' && str[i] != ')' && str[i]){i++;}
@@ -175,7 +178,7 @@ static SExpr *parse (char *str)
 /**********************************************
               Debug
  *********************************************/
-static void printCons (CONS *cons, int nest)
+static void printCons (SExpr *cons, int nest)
 {
   /*--------------type NIL----------------*/
   if (cons == NIL || !cons){
@@ -183,12 +186,12 @@ static void printCons (CONS *cons, int nest)
     return;
   /*-------------type NUMBER--------------*/
   }else if (cons->type == tNUM){
-    printf("%*s%d::tNUM::%d\n",nest,"",nest, getCarAsInt(cons));
-    printCons( getCdrAsConsCell(cons) , nest);
+    printf("%*s%d::tNUM::%d\n",nest,"",nest, *getCarAsInt(cons));
+    printCons( getCdrAsCons(cons) , nest);
   /*-------------type SYMBOL--------------*/
   }else if (cons->type == tSYM){
     printf("%*s%d::tSYM::%s\n",nest,"",nest, getCarAsChar(cons));
-    printCons( getCdrAsConsCell(cons) , nest);
+    printCons( getCdrAsCons(cons) , nest);
   /*-------------type Function------------*/
   }else if (cons->type == tFUN){
     printf("%*s%d::tFUN::%s\n",nest,"",nest, getCarAsChar(cons));
@@ -207,6 +210,16 @@ static void printCons (CONS *cons, int nest)
  *********************************************/
 int main (void)
 {
+  char str[255];
+
+  while(1){
+
+    fgets(str,255,stdin);
+
+    SExpr *root = parse(str);
+
+    printCons(root,0);
+  }
 
   return 0;
 }
