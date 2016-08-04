@@ -35,17 +35,18 @@ typedef struct SExpr {
 
 struct Env;
 
-typedef struct Env primFUN(struct Env *_env , SExpr *_args);
+typedef struct SExpr *primFUN(struct Env *_env , SExpr *_args);
 
 typedef struct Env {
+  int type;
   primFUN *fn;
   void *car;
   void *cdr;
-  void *envs;
   struct Env *next;
 } Env;
 
-static SExpr *NIL = &(SExpr){tNIL};
+static SExpr *NIL;
+static Env *END;
 
 #define getCarAsInt(_expr)    ((int*)_expr->car)
 #define getCarAsString(_expr) ((char*)_expr->car)
@@ -89,6 +90,14 @@ static SExpr *newSYM (char *_name , void *_cdr)
   new->cdr = _cdr;
   return new;
 }
+static SExpr *newPRM (char *_name , void *_cdr)
+{
+  SExpr *new = alloc(tPRM);
+  new->car = malloc(sizeof(_name));
+  strcpy(getCarAsString(new) , _name);
+  new->cdr = _cdr;
+  return new;
+}
 static SExpr *newFUN (char *_name , void *_cdr)
 {
   SExpr *new = alloc(tFUN);
@@ -121,6 +130,22 @@ static char *readCharToken (char *_str)
 /**********************************************
                Env
  *********************************************/
+static void *findSYM (Env *_env , SExpr *_obj)
+{
+  for (Env *env = _env ; env != END ; env = env->next){
+    if ( strcmp( ((char*)env->car) , getCarAsString(_obj)) == 0 )
+      return env->cdr;
+  }
+  return NIL;
+}
+static SExpr *applyPRM (Env *_env , SExpr *_obj , SExpr *_args)
+{
+  for (Env *env = _env ; env != END ; env = env->next){
+    if ( strcmp( ((char*)env->car) , getCarAsString(_obj)) == 0 )
+      return env->fn(_env , _args);
+  }
+  return NIL;
+}
 /**********************************************
                Parser
  *********************************************/
@@ -147,7 +172,27 @@ static int waitBrackets (char *str)
   }
   return i;
 }
-static SExpr *parse (char *str)
+
+static int checkSymPrmFun (char *_str , Env *_env)
+{
+  for (Env *p = _env ; p != END ; p = p->next){
+    if (strcmp(_str , ((char *)p->car)) == 0){
+      switch(p->type){
+      case tPRM:
+        return tPRM;
+      case tSYM:
+        return tSYM;
+      case tFUN:
+        return tFUN;
+      default:
+        return 0;
+      }
+    }
+  }
+  return 0;
+}
+
+static SExpr *parse (char *str , Env *_env)
 {
   SExpr *ret = NIL;
   int i = 0;
@@ -158,7 +203,7 @@ static SExpr *parse (char *str)
       continue;
     /* ---- ---- ---- ---- ---- ---- ---- */
     }else if ( str[i] == '('){ /* Init S-Expr */
-      ret = newCons( parse(&str[i+1]), ret);
+      ret = newCons( parse(&str[i+1] , _env), ret);
       i = i + waitBrackets(&str[i+1]);
     /* ---- ---- ---- ---- ---- ---- ---- */
     }else if ( str[i] == ')'){ /* End S-Exprs */
@@ -169,13 +214,21 @@ static SExpr *parse (char *str)
       while( str[i] != ' ' && str[i] != ')' && str[i]){i++;}
       if (str[i] == ')'){break;}
     /* ---- ---- ---- ---- ---- ---- ---- */
-    }else if ( strchr(symbol_chars, str[i]) ){/* Make S-Expr of Symbol */
-      ret = newSYM ( readCharToken(&str[i]), ret);
-      while(str[i] != ' ' && str[i] != ')' && str[i]){i++;}
-      if (str[i] == ')'){break;}
-      /* ---- ---- ---- ---- ---- ---- ----*/
-    }else if ( isalpha(str[i]) ){ /* Make S-Expr of Function */
-      ret = newFUN ( readCharToken(&str[i]), ret);
+    }else if (isalpha(str[i]) || strchr(symbol_chars, str[i])){
+      char *Token = readCharToken(&str[i]);
+      switch(checkSymPrmFun(Token , _env)){
+      case tPRM:
+        ret = newPRM( Token, ret);
+        break;
+      case tSYM:
+        ret = newSYM( Token, ret);
+        break;
+      case tFUN:
+        ret = newFUN( Token, ret);
+        break;
+      default:
+        printf("okasii\n");
+      }
       while(str[i] != ' ' && str[i] != ')' && str[i]){i++;}
       if (str[i] == ')'){break;}
     /* ---- ---- ---- ---- ---- ---- ---- */
@@ -189,7 +242,34 @@ static SExpr *parse (char *str)
 /**********************************************
                Eval
  *********************************************/
+static SExpr *eval (SExpr*, Env*);
 
+static SExpr *apply (SExpr *_fn , SExpr *_args , Env *_env)
+{
+  if (_fn->type == tPRM)
+    return applyPRM(_env , _fn , _args);
+  return NIL;
+}
+
+static SExpr *eval (SExpr *_expr , Env *_env)
+{
+  switch (_expr->type){
+  case tNIL:
+  case tNUM:
+  case tPRM:
+  case tFUN:
+    return _expr;
+  case tSYM:
+    return findSYM(_env , _expr);
+  case tCONS:{
+    SExpr *fn = eval(getCarAsCons(_expr) , _env);
+    SExpr *args = getCarAsCons(getCdrAsCons(_expr));
+    return apply(fn , args , _env);
+  }
+  default:
+    return NIL;
+  }
+}
 /**********************************************
               Debug
  *********************************************/
@@ -228,15 +308,21 @@ static void printCons (SExpr *cons, int nest)
  *********************************************/
 int main (void)
 {
+
+  NIL = malloc(sizeof(void *));
+  END = malloc(sizeof(void *)); 
+  
   //char str[255];
 
+  Env *env = END;
+  
   char str[255];
   
   while(1){
 
     fgets(str,255,stdin);
 
-    SExpr *root = parse(str);
+    SExpr *root = parse(str , env);
 
     printCons(root,0);
 
