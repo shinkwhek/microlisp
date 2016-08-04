@@ -22,6 +22,8 @@ enum {
   tNUM,
   tSYM,
   tFUN,
+  tPRM,
+  tENV,
   tCONS
 };
 
@@ -30,6 +32,18 @@ typedef struct SExpr {
   void *car;
   void *cdr;
 } SExpr;
+
+struct Env;
+
+typedef struct Env primFUN(struct Env *_env , SExpr *_args);
+
+typedef struct Env {
+  primFUN *fn;
+  void *car;
+  void *cdr;
+  void *envs;
+  struct Env *next;
+} Env;
 
 static SExpr *NIL = &(SExpr){tNIL};
 
@@ -41,7 +55,7 @@ static SExpr *NIL = &(SExpr){tNIL};
                Memory manegement
  *********************************************/
 
-static SExpr *alloc (int _typeName)
+static void *alloc (int _typeName)
 {
   SExpr *_cons = malloc(sizeof(SExpr));
   _cons->type = _typeName;
@@ -103,10 +117,10 @@ static char *readCharToken (char *_str)
   }
   return r;
 }
+
 /**********************************************
                Env
  *********************************************/
-
 /**********************************************
                Parser
  *********************************************/
