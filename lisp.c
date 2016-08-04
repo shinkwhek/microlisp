@@ -144,31 +144,29 @@ static SExpr *parse (char *str)
       continue;
     /* ---- ---- ---- ---- ---- ---- ---- */
     }else if ( str[i] == '('){ /* Init S-Expr */
-      ret = newCons( parse(&str[i+1]),
-                     ret);
+      ret = newCons( parse(&str[i+1]), ret);
       i = i + waitBrackets(&str[i+1]);
     /* ---- ---- ---- ---- ---- ---- ---- */
     }else if ( str[i] == ')'){ /* End S-Exprs */
       return nReverse(ret);
     /* ---- ---- ---- ---- ---- ---- ---- */
     }else if ( isdigit(str[i])){ /* Make S-Expr of Number */
-      ret = newNUM( readChar2Int(&str[i]),
-                    ret);
+      ret = newNUM( readChar2Int(&str[i]), ret);
       while( str[i] != ' ' && str[i] != ')' && str[i]){i++;}
       if (str[i] == ')'){break;}
     /* ---- ---- ---- ---- ---- ---- ---- */
     }else if ( strchr(symbol_chars, str[i]) ){/* Make S-Expr of Symbol */
-      ret = newSYM ( readCharToken(&str[i]),
-                     ret);
+      ret = newSYM ( readCharToken(&str[i]), ret);
       while(str[i] != ' ' && str[i] != ')' && str[i]){i++;}
       if (str[i] == ')'){break;}
       /* ---- ---- ---- ---- ---- ---- ----*/
     }else if ( isalpha(str[i]) ){ /* Make S-Expr of Function */
-      ret = newFUN ( readCharToken(&str[i]),
-                     ret);
+      ret = newFUN ( readCharToken(&str[i]), ret);
       while(str[i] != ' ' && str[i] != ')' && str[i]){i++;}
       if (str[i] == ')'){break;}
     /* ---- ---- ---- ---- ---- ---- ---- */
+    }else{
+      printf("parser error.\n");
     }
     i++;
   }
@@ -183,29 +181,32 @@ static SExpr *parse (char *str)
  *********************************************/
 static void printCons (SExpr *cons, int nest)
 {
-  /*--------------type NIL----------------*/
-  if (cons == NIL || !cons){
+  /* Nil obj */
+  if(cons == NIL || !cons){
     printf("%*s%d::NIL \n",nest,"",nest);
     return;
-  /*-------------type NUMBER--------------*/
-  }else if (cons->type == tNUM){
-    printf("%*s%d::tNUM::%d\n",nest,"",nest, *getCarAsInt(cons));
-    printCons( getCdrAsCons(cons) , nest);
-  /*-------------type SYMBOL--------------*/
-  }else if (cons->type == tSYM){
-    printf("%*s%d::tSYM::%s\n",nest,"",nest, getCarAsChar(cons));
-    printCons( getCdrAsCons(cons) , nest);
-  /*-------------type Function------------*/
-  }else if (cons->type == tFUN){
-    printf("%*s%d::tFUN::%s\n",nest,"",nest, getCarAsChar(cons));
-    printCons( getCdrAsCons(cons) , nest);
-  /*------------type Cons Cell------------*/
-  }else if (cons->type == tCONS){
-    printCons( getCarAsCons(cons), nest + 1);
-    printCons( getCdrAsCons(cons), nest);
-  /*------------type NOT Know-------------*/
+    
   }else{
-    printf("i dont know.\n");
+    switch (cons->type){
+    case tNUM:
+      printf("%*s%d::tNUM::%d\n",nest,"",nest, *getCarAsInt(cons));
+      printCons( getCdrAsCons(cons) , nest);
+      break;
+    case tSYM:
+      printf("%*s%d::tSYM::%s\n",nest,"",nest, getCarAsChar(cons));
+      printCons( getCdrAsCons(cons) , nest);
+      break;
+    case tFUN:
+      printf("%*s%d::tFUN::%s\n",nest,"",nest, getCarAsChar(cons));
+      printCons( getCdrAsCons(cons) , nest);
+      break;
+    case tCONS:
+       printCons( getCarAsCons(cons), nest + 1);
+       printCons( getCdrAsCons(cons), nest);
+       break;
+    default:
+      printf("print error.\n");
+    }
   }
 }
 /**********************************************
