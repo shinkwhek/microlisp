@@ -33,17 +33,17 @@ typedef struct SExpr {
 
 static SExpr *NIL = &(SExpr){tNIL};
 
-#define getCarAsInt(_expr)  ((int*)_expr->car)
-#define getCarAsChar(_expr) ((char*)_expr->car)
-#define getCarAsCons(_expr) ((SExpr*)_expr->car)
-#define getCdrAsCons(_expr) ((SExpr*)_expr->cdr)
+#define getCarAsInt(_expr)    ((int*)_expr->car)
+#define getCarAsString(_expr) ((char*)_expr->car)
+#define getCarAsCons(_expr)   ((SExpr*)_expr->car)
+#define getCdrAsCons(_expr)   ((SExpr*)_expr->cdr)
 /**********************************************
                Memory manegement
  *********************************************/
 
 static SExpr *alloc (int _typeName)
 {
-   SExpr *_cons = (SExpr *)malloc(sizeof(SExpr));
+  SExpr *_cons = malloc(sizeof(SExpr));
   _cons->type = _typeName;
   _cons->car = NULL;
   _cons->cdr = NULL;
@@ -62,24 +62,24 @@ static SExpr *newCons (void *_car , void *_cdr)
 static SExpr *newNUM (int _value , void *_cdr)
 {
   SExpr *new = alloc(tNUM);
-  new->car = (int *)malloc(sizeof(int));
-  *((int *)new->car) = _value;
+  new->car = malloc(sizeof(_value));
+  *getCarAsInt(new) = _value;
   new->cdr = _cdr;
   return new;
 }
 static SExpr *newSYM (char *_name , void *_cdr)
 {
   SExpr *new = alloc(tSYM);
-  new->car = (char *)malloc(sizeof(char *));
-  strcpy(((char *)new->car) , _name);
+  new->car = malloc(sizeof(_name));
+  strcpy(getCarAsString(new) , _name);
   new->cdr = _cdr;
   return new;
 }
 static SExpr *newFUN (char *_name , void *_cdr)
 {
   SExpr *new = alloc(tFUN);
-  new->car = (char *)malloc(sizeof(char *));
-  strcpy(((char *)new->car) , _name);
+  new->car = malloc(sizeof(_name));
+  strcpy(getCarAsString(new) , _name);
   new->cdr = _cdr;
   return new;
 }
@@ -97,7 +97,7 @@ static char *readCharToken (char *_str)
 {
   int i = 0;
   char *r = (char *)malloc(sizeof(char *));
-  while(_str[i] != ' ' && _str[i] != ')' && _str[i]){
+  while(_str[i] != ' ' && _str[i] != ')' &&  _str[i] && _str[i] != '\0'){
     r[i] = r[i] + _str[i];
     i++;
   }
@@ -137,7 +137,7 @@ static SExpr *parse (char *str)
 {
   SExpr *ret = NIL;
   int i = 0;
-  while (str[i] != '\0'){
+  while (str[i] != '\0' && str[i]){
     /* ---- ---- ---- ---- ---- ---- ---- */
     if (str[i] == ' '){ /* Ignore space */
       ++i;
@@ -166,9 +166,9 @@ static SExpr *parse (char *str)
       if (str[i] == ')'){break;}
     /* ---- ---- ---- ---- ---- ---- ---- */
     }else{
-      printf("parser error.\n");
+      break;
     }
-    i++;
+    ++i;
   }
   return nReverse(ret);
 }
@@ -193,17 +193,17 @@ static void printCons (SExpr *cons, int nest)
       printCons( getCdrAsCons(cons) , nest);
       break;
     case tSYM:
-      printf("%*s%d::tSYM::%s\n",nest,"",nest, getCarAsChar(cons));
+      printf("%*s%d::tSYM::%s\n",nest,"",nest, getCarAsString(cons));
       printCons( getCdrAsCons(cons) , nest);
       break;
     case tFUN:
-      printf("%*s%d::tFUN::%s\n",nest,"",nest, getCarAsChar(cons));
+      printf("%*s%d::tFUN::%s\n",nest,"",nest, getCarAsString(cons));
       printCons( getCdrAsCons(cons) , nest);
       break;
     case tCONS:
-       printCons( getCarAsCons(cons), nest + 1);
-       printCons( getCdrAsCons(cons), nest);
-       break;
+      printCons( getCarAsCons(cons), nest + 1);
+      printCons( getCdrAsCons(cons), nest);
+      break;
     default:
       printf("print error.\n");
     }
@@ -214,8 +214,10 @@ static void printCons (SExpr *cons, int nest)
  *********************************************/
 int main (void)
 {
-  char str[255];
+  //char str[255];
 
+  char str[255];
+  
   while(1){
 
     fgets(str,255,stdin);
@@ -223,6 +225,7 @@ int main (void)
     SExpr *root = parse(str);
 
     printCons(root,0);
+
   }
 
   return 0;
