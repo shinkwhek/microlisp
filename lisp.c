@@ -35,7 +35,7 @@ typedef struct SExpr {
 
 struct Env;
 
-typedef struct SExpr *primFUN(struct Env *_env , SExpr *_args);
+typedef struct SExpr *primFUN(struct Env *_env , struct SExpr *_args);
 
 typedef struct Env {
   int type;
@@ -46,6 +46,7 @@ typedef struct Env {
 } Env;
 
 static SExpr *NIL;
+static SExpr *TRUE;
 static Env *END;
 
 #define getCarAsInt(_expr)    ((int*)_expr->car)
@@ -63,6 +64,16 @@ static void *alloc (int _typeName)
   _cons->car = NULL;
   _cons->cdr = NULL;
   return _cons;
+}
+static void *alloe (int _typeName)
+{
+  Env *_new = malloc(sizeof(Env));
+  _new->type = _typeName;
+  _new->car  = NULL;
+  _new->cdr  = NULL;
+  _new->fn   = NULL;
+  _new->next = NULL;
+  return _new;
 }
 /**********************************************
         Tiny
@@ -120,23 +131,60 @@ static char *readCharToken (char *_str)
 {
   int i = 0;
   char *r = (char *)malloc(sizeof(char *));
-  while(_str[i] != ' ' && _str[i] != ')' &&  _str[i] && _str[i] != '\0'){
+  while(_str[i] != ' ' && _str[i] != ')' &&  _str[i] && _str[i] != '\0' && _str[i] != '\n'){
     r[i] = r[i] + _str[i];
     i++;
   }
   return r;
 }
-
+static int lengthOfList (SExpr *_expr)
+{
+  int len = 0;
+  SExpr *r = _expr;
+  do {
+    ++len;
+  } while (NIL != (r = getCdrAsCons(r)));
+  return len;
+}
 /**********************************************
                Env
  *********************************************/
-static void *findSYM (Env *_env , SExpr *_obj)
+static Env *addVAR (char *varName , int value , Env *_root)
+{
+  Env *new = alloe(tSYM);
+  new->car = malloc(sizeof(varName));
+  strcpy(getCarAsString(new) , varName);
+  new->cdr = malloc(sizeof(value));
+  *((int *)new->cdr) = value;
+  new->next = _root;
+  return new;
+}
+static Env *addPRM (char *fnName , primFUN *_fn , Env *_root)
+{
+  Env *new = alloe(tPRM);
+  new->car = malloc(sizeof(fnName));
+  strcpy(getCarAsString(new) , fnName);
+  new->fn = _fn;
+  new->next = _root;
+  return new;
+}
+static SExpr *findSYM (Env *_env , char *_obj)
 {
   for (Env *env = _env ; env != END ; env = env->next){
-    if ( strcmp( ((char*)env->car) , getCarAsString(_obj)) == 0 )
+    if ( strcmp(getCarAsString(getCarAsCons(env)) , _obj) == 0
+         && _env->type == tSYM)
       return env->cdr;
   }
   return NIL;
+}
+static primFUN *findPRM (Env *_env , char *_obj)
+{
+  for (Env *env = _env ; env != END ; env = env->next){
+    if ( strcmp(getCarAsString(getCarAsCons(env)) , _obj) == 0
+         && _env->type == tPRM)
+      return env->fn;
+  }
+  return NULL;
 }
 static SExpr *applyPRM (Env *_env , SExpr *_obj , SExpr *_args)
 {
@@ -176,7 +224,7 @@ static int waitBrackets (char *str)
 static int checkSymPrmFun (char *_str , Env *_env)
 {
   for (Env *p = _env ; p != END ; p = p->next){
-    if (strcmp(_str , ((char *)p->car)) == 0){
+    if (strcmp( _str , getCarAsString(p) ) == 0){
       switch(p->type){
       case tPRM:
         return tPRM;
@@ -184,8 +232,6 @@ static int checkSymPrmFun (char *_str , Env *_env)
         return tSYM;
       case tFUN:
         return tFUN;
-      default:
-        return 0;
       }
     }
   }
@@ -214,20 +260,21 @@ static SExpr *parse (char *str , Env *_env)
       while( str[i] != ' ' && str[i] != ')' && str[i]){i++;}
       if (str[i] == ')'){break;}
     /* ---- ---- ---- ---- ---- ---- ---- */
-    }else if (isalpha(str[i]) || strchr(symbol_chars, str[i])){
+    }else if (isalpha(str[i]) || strchr(symbol_chars , str[i])){
       char *Token = readCharToken(&str[i]);
-      switch(checkSymPrmFun(Token , _env)){
-      case tPRM:
-        ret = newPRM( Token, ret);
-        break;
+      switch( checkSymPrmFun(Token , _env) ){
       case tSYM:
-        ret = newSYM( Token, ret);
+        ret = newSYM(Token , ret);
+        break;
+      case tPRM:
+        ret = newPRM(Token , ret);
         break;
       case tFUN:
-        ret = newFUN( Token, ret);
+        ret = newFUN(Token , ret);
         break;
       default:
-        printf("okasii\n");
+        printf("env type error.\n");
+        break;
       }
       while(str[i] != ' ' && str[i] != ')' && str[i]){i++;}
       if (str[i] == ')'){break;}
@@ -244,6 +291,37 @@ static SExpr *parse (char *str , Env *_env)
  *********************************************/
 static SExpr *eval (SExpr*, Env*);
 
+static void changeType (int *_nowType , SExpr *_expr)
+{
+  if (strcmp("QUOTE" , getCarAsString(_expr)) == 0){
+    *_nowType = tCONS;
+  }else{
+    *_nowType = tNUM;
+  }
+}
+static SExpr *allElmEval (SExpr *_expr , Env *_env)
+{
+  SExpr *r = _expr;
+  switch (r->type){
+  case tNIL:
+    r->car = NIL;
+    break;
+  case tNUM:
+  case tSYM:
+  case tPRM:
+  case tFUN:
+    r->car = eval(r , _env);
+    break;
+  case tCONS:
+    changeType(&(r->type) , r);
+    r->car = allElmEval(getCarAsCons(r) , _env);
+    break;
+  default:
+    break;
+  }
+  r->cdr = eval(getCdrAsCons(r) , _env);
+  return r;
+}
 static SExpr *apply (SExpr *_fn , SExpr *_args , Env *_env)
 {
   if (_fn->type == tPRM)
@@ -260,14 +338,58 @@ static SExpr *eval (SExpr *_expr , Env *_env)
   case tFUN:
     return _expr;
   case tSYM:
-    return findSYM(_env , _expr);
+    return findSYM(_env , getCarAsString(_expr));
   case tCONS:{
     SExpr *fn = eval(getCarAsCons(_expr) , _env);
-    SExpr *args = getCarAsCons(getCdrAsCons(_expr));
+    SExpr *args = getCdrAsCons(getCarAsCons(_expr));
     return apply(fn , args , _env);
   }
   default:
     return NIL;
+  }
+}
+/**********************************************
+              Primitive
+ *********************************************/
+// ('expr)
+static SExpr *pQUOTE (Env *_env , SExpr *_expr)
+{
+  if (lengthOfList(_expr) != 1)
+    printf("QUOTE is must 1 S-Expr.\n");
+  return _expr->cdr;
+}
+// (+ <INT> ...
+static SExpr *pADD (Env *_env , SExpr *_expr)
+{
+  int sum = 0;
+  for (SExpr *p = allElmEval(_expr , _env) ; p != NIL ; p = p->cdr){
+    if (p->type != tNUM)
+      printf("pADD must take number.\n");
+    sum += *getCarAsInt(p);
+  }
+  return newNUM(sum , NULL);
+}
+static Env *setPRIMITIVE (Env *_env)
+{
+  Env *r = _env;
+  r = addPRM("QUOTE" , pQUOTE , r);
+  r = addPRM("+" , pADD , r);
+  return r;
+}
+/**********************************************
+              for User
+ *********************************************/
+static void print (SExpr *_expr)
+{
+  printf(";  ");
+  switch (_expr->type){
+  case tNUM:
+    printf("<INT> = %d\n" , *getCarAsInt(_expr));
+    return;
+  case tPRM:
+    printf("<PRIMITIVE>\n");
+    return;
+    
   }
 }
 /**********************************************
@@ -294,6 +416,10 @@ static void printCons (SExpr *cons, int nest)
       printf("%*s%d::tFUN::%s\n",nest,"",nest, getCarAsString(cons));
       printCons( getCdrAsCons(cons) , nest);
       break;
+    case tPRM:
+      printf("%*s%d::tPRM::%s\n",nest,"",nest, getCarAsString(cons));
+      printCons( getCdrAsCons(cons) , nest);
+      break;
     case tCONS:
       printCons( getCarAsCons(cons), nest + 1);
       printCons( getCdrAsCons(cons), nest);
@@ -309,12 +435,13 @@ static void printCons (SExpr *cons, int nest)
 int main (void)
 {
 
-  NIL = malloc(sizeof(void *));
-  END = malloc(sizeof(void *)); 
+  NIL  = malloc(sizeof(void *));
+  TRUE = malloc(sizeof(void *));
+  END  = malloc(sizeof(void *)); 
   
-  //char str[255];
-
   Env *env = END;
+
+  env = setPRIMITIVE(env);
   
   char str[255];
   
@@ -323,8 +450,10 @@ int main (void)
     fgets(str,255,stdin);
 
     SExpr *root = parse(str , env);
-
+    
     printCons(root,0);
+
+    print(eval(root , env));
 
   }
 
