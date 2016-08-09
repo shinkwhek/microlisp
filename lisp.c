@@ -314,7 +314,7 @@ static SExpr *allElmEval (SExpr *_expr , Env *_env)
     break;
   case tCONS:
     changeType(&(r->type) , r);
-    r->car = allElmEval(getCarAsCons(r) , _env);
+    r->car = eval(getCarAsCons(r) , _env);
     break;
   default:
     break;
@@ -388,8 +388,7 @@ static void print (SExpr *_expr)
     return;
   case tPRM:
     printf("<PRIMITIVE>\n");
-    return;
-    
+    return; 
   }
 }
 /**********************************************
