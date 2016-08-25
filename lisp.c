@@ -47,6 +47,7 @@ typedef struct Env {
 
 static SExpr *NIL;
 static SExpr *TRUE;
+static SExpr *FALSE;
 static Env   *END;
 
 #define getCarAsInt(_expr)    ((int*)_expr->car)
@@ -345,9 +346,11 @@ static SExpr *pMinus (Env *_env , SExpr *_expr)
   case 0:
     result = 0;
     break;
-  case 1:
-    result = -(*getCarAsInt(_expr));
+  case 1:{
+    SExpr *T = eval(_expr , _env);
+    result = -(*getCarAsInt(T));
     break;
+  }
   default:{
     result = *getCarAsInt(_expr);
     for (SExpr *p = getCdrAsCons(_expr) ; p != NIL ; p = p->cdr){
@@ -362,13 +365,90 @@ static SExpr *pMinus (Env *_env , SExpr *_expr)
   }
   return newNUM(result , NULL);
 }
+// (* <NUMBER> ...
+static SExpr *pMultiplied (Env *_env , SExpr *_expr)
+{
+  int result = 1;
+  for (SExpr *p = _expr ; p != NIL ; p = p->cdr){
+    SExpr *T = eval(p , _env);
+    if (T->type != tNUM){
+      printf("pMultiplied must take number.\n");
+    }else{
+      result *= *getCarAsInt(T);
+    }
+  }
+  return newNUM(result , NULL);
+}
+// (/ <NUMBER> ...
+static SExpr *pDivided (Env *_env , SExpr *_expr)
+{
+  int result = *getCarAsInt(_expr);
+  for (SExpr *p = getCdrAsCons(_expr) ; p != NIL ; p = p->cdr){
+    SExpr *T = eval(p , _env);
+    if (T->type != tNUM){
+      printf("pDivided must take number.\n");
+    }else if(*getCarAsInt(T) == 0){
+      printf("Cannot divided by zero.\n");
+    }else{
+      result /= *getCarAsInt(T);
+    }
+  }
+  return newNUM(result , NULL);
+}
+// (> A B)
+static SExpr *pGreater (Env *_env , SExpr *_expr)
+{
+  SExpr *A = eval(_expr               , _env);
+  SExpr *B = eval(getCdrAsCons(_expr) , _env);
+  if (*getCarAsInt(A) > *getCarAsInt(B)){
+    return TRUE;
+  }else if ( !(*getCarAsInt(A) > *getCarAsInt(B)) ){
+    return FALSE;
+  }else{
+    printf("pGreater error.\n");
+  }
+  return NIL;
+}
+// (< A B)
+static SExpr *pLess (Env *_env , SExpr *_expr)
+{
+  SExpr *A = eval(_expr               , _env);
+  SExpr *B = eval(getCdrAsCons(_expr) , _env);
+  if (*getCarAsInt(A) < *getCarAsInt(B)){
+    return TRUE;
+  }else if ( !(*getCarAsInt(A) < *getCarAsInt(B)) ){
+    return FALSE;
+  }else{
+    printf("pLess error.\n");
+  }
+  return NIL;
+}
+// (= A B)
+static SExpr *pEqual (Env *_env , SExpr *_expr)
+{
+  SExpr *A = eval(_expr               , _env);
+  SExpr *B = eval(getCdrAsCons(_expr) , _env);
+  if (*getCarAsInt(A) == *getCarAsInt(B)){
+    return TRUE;
+  }else if( !(*getCarAsInt(A) == *getCarAsInt(B)) ){
+    return FALSE;
+  }else{
+    printf("pEqual error.\n");
+  }
+  return NIL;
+}
 
 static Env *setPRIMITIVE (Env *_env)
 {
   Env *r = _env;
-  r = addPRM("QUOTE" , pQUOTE , r);
-  r = addPRM("+"     , pPlus  , r);
-  r = addPRM("-"     , pMinus , r);
+  r = addPRM("QUOTE" , pQUOTE      , r);
+  r = addPRM("+"     , pPlus       , r);
+  r = addPRM("-"     , pMinus      , r);
+  r = addPRM("*"     , pMultiplied , r);
+  r = addPRM("/"     , pDivided    , r);
+  r = addPRM(">"     , pGreater    , r);
+  r = addPRM("<"     , pLess       , r);
+  r = addPRM("="     , pEqual      , r);
   return r;
 }
 /**** **** **** **** **** **** **** **** ****
@@ -379,11 +459,18 @@ static void print (SExpr *_expr)
   printf(";  ");
   switch (_expr->type){
   case tNUM:
-    printf("<NUMBER> = %d\n" , *getCarAsInt(_expr));
+    printf("<NUMBER> = %d.\n" , *getCarAsInt(_expr));
     return;
   case tPRM:
-    printf("<PRIMITIVE>\n");
-    return; 
+    printf("<PRIMITIVE>.\n");
+    return;
+  default:{
+    if (_expr == TRUE){
+      printf("<BOOL> = True.\n");
+    }else if (_expr == FALSE){
+      printf("<BOOL> = False.\n");
+    }
+  }
   }
 }
 /**** **** **** **** **** **** **** **** ****
@@ -429,9 +516,10 @@ static void printCons (SExpr *cons, int nest)
 int main (void)
 {
 
-  NIL  = malloc(sizeof(void *));
-  TRUE = malloc(sizeof(void *));
-  END  = malloc(sizeof(void *)); 
+  NIL   = malloc(sizeof(void *));
+  TRUE  = malloc(sizeof(void *));
+  FALSE = malloc(sizeof(void *));
+  END   = malloc(sizeof(void *)); 
   
   Env *env = END;
 
