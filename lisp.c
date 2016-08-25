@@ -450,6 +450,25 @@ static SExpr *pIf (Env *_env , SExpr *_expr)
   }
   return NIL;
 }
+// (cons A B) -> (A . B)
+static SExpr *pCons (Env *_env , SExpr *_expr)
+{
+  SExpr *A = _expr;
+  SExpr *B = getCdrAsCons(_expr);
+  return newCons(A , B);
+}
+// (car (A _)) -> A
+static SExpr *pCar (Env *_env , SExpr *_expr)
+{
+  SExpr *A = getCarAsCons(_expr);
+  return A;
+}
+// (cdr (A _)) -> _
+static SExpr *pCdr (Env *_env , SExpr *_expr)
+{
+  SExpr *O = getCdrAsCons(getCarAsCons(_expr));
+  return O;
+}
 
 static Env *setPRIMITIVE (Env *_env)
 {
@@ -463,6 +482,9 @@ static Env *setPRIMITIVE (Env *_env)
   r = addPRM("<"     , pLess       , r);
   r = addPRM("="     , pEqual      , r);
   r = addPRM("if"    , pIf         , r);
+  r = addPRM("cons"  , pCons       , r);
+  r = addPRM("car"   , pCar        , r);
+  r = addPRM("cdr"   , pCdr        , r);
   return r;
 }
 /**** **** **** **** **** **** **** **** ****
@@ -477,6 +499,9 @@ static void print (SExpr *_expr)
     return;
   case tPRM:
     printf("<PRIMITIVE>.\n");
+    return;
+  case tCONS:
+    printf("(<SEXPR> . <SEXPR>)\n");
     return;
   default:{
     if (_expr == TRUE){
