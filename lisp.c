@@ -1,19 +1,19 @@
-/**********************************************
+/**** **** **** **** **** **** **** **** ****
    Lisp on AVR
 
    Author : Shin KAWAHARA
 
    License : read LICENSE
- *********************************************/
+ **** **** **** **** **** **** **** **** ****/
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
 
-/**********************************************
+/**** **** **** **** **** **** **** **** ****
                TYPES
- *********************************************/
+ **** **** **** **** **** **** **** **** ****/
 const int MAX_FUNC_NAME = 10;
 const char symbol_chars[] = "!%^*-=+/<>";
 
@@ -53,9 +53,9 @@ static Env   *END;
 #define getCarAsString(_expr) ((char*)_expr->car)
 #define getCarAsCons(_expr)   ((SExpr*)_expr->car)
 #define getCdrAsCons(_expr)   ((SExpr*)_expr->cdr)
-/**********************************************
+/**** **** **** **** **** **** **** **** ****
                Memory manegement
- *********************************************/
+ **** **** **** **** **** **** **** **** ****/
 static void *alloc (int _typeName)
 {
   SExpr *_cons = malloc(sizeof(SExpr));
@@ -78,9 +78,9 @@ static void *alloe (int _typeName)
 
 // [ToDo] GC mark-and-sweep
 
-/**********************************************
+/**** **** **** **** **** **** **** **** ****
         To create SExpr
- *********************************************/
+ **** **** **** **** **** **** **** **** ****/
 static SExpr *newCons (void *_car , void *_cdr)
 {
   SExpr *new = alloc(tCONS);
@@ -149,9 +149,9 @@ static int lengthOfList (SExpr *_expr)
   } while (NIL != (r = getCdrAsCons(r)));
   return len;
 }
-/**********************************************
+/**** **** **** **** **** **** **** **** ***
                Env
- *********************************************/
+ **** **** **** **** **** **** **** **** ****/
 static Env *addVAR (char *varName , int value , Env *_root)
 {
   Env *new = alloe(tSYM);
@@ -189,9 +189,9 @@ static SExpr *applyPRM (Env *_env , SExpr *_obj , SExpr *_args)
   }
   return NIL;
 }
-/**********************************************
+/**** **** **** **** **** **** **** **** ****
                Parser
- *********************************************/
+ **** **** **** **** **** **** **** **** ****/
 static SExpr *nReverse (SExpr *_expr)
 {
    SExpr *ret = NIL;
@@ -281,9 +281,9 @@ static SExpr *parse (char *str , Env *_env)
   }
   return nReverse(ret);
 }
-/**********************************************
+/**** **** **** **** **** **** **** **** ****
                Eval
- *********************************************/
+ **** **** **** **** **** **** **** **** ****/
 static SExpr *eval (SExpr*, Env*);
 
 
@@ -313,9 +313,9 @@ static SExpr *eval (SExpr *_expr , Env *_env)
     return NIL;
   }
 }
-/**********************************************
+/**** **** **** **** **** **** **** **** ****
               Primitive
- *********************************************/
+ **** **** **** **** **** **** **** **** ****/
 // ('expr)
 static SExpr *pQUOTE (Env *_env , SExpr *_expr)
 {
@@ -344,9 +344,9 @@ static Env *setPRIMITIVE (Env *_env)
   r = addPRM("+" , pADD , r);
   return r;
 }
-/**********************************************
+/**** **** **** **** **** **** **** **** ****
               for User
- *********************************************/
+ **** **** **** **** **** **** **** **** ****/
 static void print (SExpr *_expr)
 {
   printf(";  ");
@@ -359,9 +359,9 @@ static void print (SExpr *_expr)
     return; 
   }
 }
-/**********************************************
+/**** **** **** **** **** **** **** **** ****
               Debug
- *********************************************/
+ **** **** **** **** **** **** **** **** ****/
 static void printCons (SExpr *cons, int nest)
 {
   /* Nil obj */
@@ -396,9 +396,9 @@ static void printCons (SExpr *cons, int nest)
     }
   }
 }
-/**********************************************
+/**** **** **** **** **** **** **** **** ****
                Main Loop
- *********************************************/
+ **** **** **** **** **** **** **** **** ****/
 int main (void)
 {
 
