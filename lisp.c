@@ -437,6 +437,19 @@ static SExpr *pEqual (Env *_env , SExpr *_expr)
   }
   return NIL;
 }
+// (if (TRUE | FALSE) A B)
+static SExpr *pIf (Env *_env , SExpr *_expr)
+{
+  SExpr *P = eval(_expr , _env); // TRUE | FALSE
+  if (P == TRUE){
+    return eval(getCdrAsCons(_expr) , _env);
+  }else if (P == FALSE){
+    return eval(getCdrAsCons(getCdrAsCons(_expr)) , _env);
+  }else{
+    printf("pIf error.\n");
+  }
+  return NIL;
+}
 
 static Env *setPRIMITIVE (Env *_env)
 {
@@ -449,6 +462,7 @@ static Env *setPRIMITIVE (Env *_env)
   r = addPRM(">"     , pGreater    , r);
   r = addPRM("<"     , pLess       , r);
   r = addPRM("="     , pEqual      , r);
+  r = addPRM("if"    , pIf         , r);
   return r;
 }
 /**** **** **** **** **** **** **** **** ****
