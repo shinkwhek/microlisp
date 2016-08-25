@@ -28,7 +28,7 @@ enum {
 };
 
 typedef struct SExpr {
-  int type;
+  int  type;
   void *car;
   void *cdr;
 } SExpr;
@@ -38,16 +38,16 @@ struct Env;
 typedef struct SExpr *primFUN(struct Env *_env , struct SExpr *_args);
 
 typedef struct Env {
-  int type;
-  primFUN *fn;
-  void *car;
-  void *cdr;
+  int        type;
+  primFUN    *fn;
+  void       *car;
+  void       *cdr;
   struct Env *next;
 } Env;
 
 static SExpr *NIL;
 static SExpr *TRUE;
-static Env *END;
+static Env   *END;
 
 #define getCarAsInt(_expr)    ((int*)_expr->car)
 #define getCarAsString(_expr) ((char*)_expr->car)
@@ -56,7 +56,6 @@ static Env *END;
 /**********************************************
                Memory manegement
  *********************************************/
-
 static void *alloc (int _typeName)
 {
   SExpr *_cons = malloc(sizeof(SExpr));
@@ -65,6 +64,7 @@ static void *alloc (int _typeName)
   _cons->cdr = NULL;
   return _cons;
 }
+
 static void *alloe (int _typeName)
 {
   Env *_new = malloc(sizeof(Env));
@@ -75,8 +75,11 @@ static void *alloe (int _typeName)
   _new->next = NULL;
   return _new;
 }
+
+// [ToDo] GC mark-and-sweep
+
 /**********************************************
-        Tiny
+        To create SExpr
  *********************************************/
 static SExpr *newCons (void *_car , void *_cdr)
 {
@@ -177,19 +180,11 @@ static SExpr *findSYM (Env *_env , char *_obj)
   }
   return NIL;
 }
-static primFUN *findPRM (Env *_env , char *_obj)
-{
-  for (Env *env = _env ; env != END ; env = env->next){
-    if ( strcmp(getCarAsString(getCarAsCons(env)) , _obj) == 0
-         && _env->type == tPRM)
-      return env->fn;
-  }
-  return NULL;
-}
+
 static SExpr *applyPRM (Env *_env , SExpr *_obj , SExpr *_args)
 {
   for (Env *env = _env ; env != END ; env = env->next){
-    if ( strcmp( ((char*)env->car) , getCarAsString(_obj)) == 0 )
+    if ( strcmp( getCarAsString(env) , getCarAsString(_obj)) == 0 )
       return env->fn(_env , _args);
   }
   return NIL;
@@ -291,37 +286,7 @@ static SExpr *parse (char *str , Env *_env)
  *********************************************/
 static SExpr *eval (SExpr*, Env*);
 
-static void changeType (int *_nowType , SExpr *_expr)
-{
-  if (strcmp("QUOTE" , getCarAsString(_expr)) == 0){
-    *_nowType = tCONS;
-  }else{
-    *_nowType = tNUM;
-  }
-}
-static SExpr *allElmEval (SExpr *_expr , Env *_env)
-{
-  SExpr *r = _expr;
-  switch (r->type){
-  case tNIL:
-    r->car = NIL;
-    break;
-  case tNUM:
-  case tSYM:
-  case tPRM:
-  case tFUN:
-    r->car = eval(r , _env);
-    break;
-  case tCONS:
-    changeType(&(r->type) , r);
-    r->car = eval(getCarAsCons(r) , _env);
-    break;
-  default:
-    break;
-  }
-  r->cdr = eval(getCdrAsCons(r) , _env);
-  return r;
-}
+
 static SExpr *apply (SExpr *_fn , SExpr *_args , Env *_env)
 {
   if (_fn->type == tPRM)
@@ -362,10 +327,13 @@ static SExpr *pQUOTE (Env *_env , SExpr *_expr)
 static SExpr *pADD (Env *_env , SExpr *_expr)
 {
   int sum = 0;
-  for (SExpr *p = allElmEval(_expr , _env) ; p != NIL ; p = p->cdr){
-    if (p->type != tNUM)
+  for (SExpr *p = _expr ; p != NIL ; p = p->cdr){
+    SExpr *T = eval(p , _env);
+    if (T->type != tNUM){
       printf("pADD must take number.\n");
-    sum += *getCarAsInt(p);
+    }else{
+      sum += *getCarAsInt(T);
+    }
   }
   return newNUM(sum , NULL);
 }
@@ -384,7 +352,7 @@ static void print (SExpr *_expr)
   printf(";  ");
   switch (_expr->type){
   case tNUM:
-    printf("<INT> = %d\n" , *getCarAsInt(_expr));
+    printf("<NUMBER> = %d\n" , *getCarAsInt(_expr));
     return;
   case tPRM:
     printf("<PRIMITIVE>\n");
