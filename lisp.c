@@ -143,10 +143,9 @@ static char *readCharToken (char *_str)
 static int lengthOfList (SExpr *_expr)
 {
   int len = 0;
-  SExpr *r = _expr;
-  do {
+  for (SExpr *r = _expr ; r != NIL ; r = r->cdr) {
     ++len;
-  } while (NIL != (r = getCdrAsCons(r)));
+  }
   return len;
 }
 /**** **** **** **** **** **** **** **** ***
@@ -323,25 +322,53 @@ static SExpr *pQUOTE (Env *_env , SExpr *_expr)
     printf("QUOTE is must 1 S-Expr.\n");
   return _expr->cdr;
 }
-// (+ <INT> ...
-static SExpr *pADD (Env *_env , SExpr *_expr)
+
+// (+ <NUMBER> ...
+static SExpr *pPlus (Env *_env , SExpr *_expr)
 {
-  int sum = 0;
+  int result = 0;
   for (SExpr *p = _expr ; p != NIL ; p = p->cdr){
     SExpr *T = eval(p , _env);
     if (T->type != tNUM){
-      printf("pADD must take number.\n");
+      printf("pPlus must take number.\n");
     }else{
-      sum += *getCarAsInt(T);
+      result += *getCarAsInt(T);
     }
   }
-  return newNUM(sum , NULL);
+  return newNUM(result , NULL);
 }
+// (- <NUMBER> ...
+static SExpr *pMinus (Env *_env , SExpr *_expr)
+{
+  int result;
+  switch(lengthOfList(_expr)){
+  case 0:
+    result = 0;
+    break;
+  case 1:
+    result = -(*getCarAsInt(_expr));
+    break;
+  default:{
+    result = *getCarAsInt(_expr);
+    for (SExpr *p = getCdrAsCons(_expr) ; p != NIL ; p = p->cdr){
+      SExpr *T = eval(p , _env);
+      if (T->type != tNUM){
+        printf("pMinus must take number.\n");
+      }else{
+        result -= *getCarAsInt(T);
+      }
+    }
+  }
+  }
+  return newNUM(result , NULL);
+}
+
 static Env *setPRIMITIVE (Env *_env)
 {
   Env *r = _env;
   r = addPRM("QUOTE" , pQUOTE , r);
-  r = addPRM("+" , pADD , r);
+  r = addPRM("+"     , pPlus  , r);
+  r = addPRM("-"     , pMinus , r);
   return r;
 }
 /**** **** **** **** **** **** **** **** ****
