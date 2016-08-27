@@ -116,30 +116,26 @@ static SExpr *newNUM (int _value , void *_cdr)
   new->cdr = _cdr;
   return new;
 }
-static SExpr *newSYM (char *_name , void *_cdr)
-{
-  SExpr *new = alloc(tSYM);
+static SExpr *newSPF (char *_name , void *_cdr , int type){
+  int __type;
+  switch(type){
+  case tSYM:
+    __type = tSYM;
+    break;
+  case tPRM:
+    __type = tPRM;
+    break;
+  case tFUN:
+    __type = tFUN;
+    break;
+  }
+  SExpr *new = alloc(__type);
   new->car = malloc(sizeof(_name));
   strcpy(getCarAsString(new) , _name);
   new->cdr = _cdr;
   return new;
 }
-static SExpr *newPRM (char *_name , void *_cdr)
-{
-  SExpr *new = alloc(tPRM);
-  new->car = malloc(sizeof(_name));
-  strcpy(getCarAsString(new) , _name);
-  new->cdr = _cdr;
-  return new;
-}
-static SExpr *newFUN (char *_name , void *_cdr)
-{
-  SExpr *new = alloc(tFUN);
-  new->car = malloc(sizeof(_name));
-  strcpy(getCarAsString(new) , _name);
-  new->cdr = _cdr;
-  return new;
-}
+
 static int readChar2Int (char *_str)
 {
   int i = 0;
@@ -235,11 +231,11 @@ static SExpr *nReverse (SExpr *_expr)
 static int waitBrackets (char *str)
 {
   int i = 0;
-  int leftCnt  = 1;
-  int rightCnt = 0;
-  while (leftCnt != rightCnt){
-    if (str[i] == '('){ leftCnt++;  }
-    if (str[i] == ')'){ rightCnt++; }
+  int lCnt  = 1;
+  int rCnt = 0;
+  while (lCnt != rCnt){
+    if (str[i] == '('){ lCnt++; }
+    if (str[i] == ')'){ rCnt++; }
     ++i;
   }
   return i;
@@ -288,13 +284,13 @@ static SExpr *parse (char *str , Env *_env)
       char *Token = readCharToken(&str[i]);
       switch( checkSymPrmFun(Token , _env) ){
       case tSYM:
-        ret = newSYM(Token , ret);
+        ret = newSPF(Token , ret , tSYM);
         break;
       case tPRM:
-        ret = newPRM(Token , ret);
+        ret = newSPF(Token , ret , tPRM);
         break;
       case tFUN:
-        ret = newFUN(Token , ret);
+        ret = newSPF(Token , ret , tFUN);
         break;
       default:
         printf("env type error.\n");
@@ -314,7 +310,6 @@ static SExpr *parse (char *str , Env *_env)
                Eval
  **** **** **** **** **** **** **** **** ****/
 static SExpr *eval (SExpr*, Env*);
-
 
 static SExpr *apply (SExpr *_expr , SExpr *_args , Env *_env)
 {
@@ -514,7 +509,6 @@ static SExpr *pDefn (Env *_env , SExpr *_expr)
   }
   return NIL;
 }
-
 
 static Env *setPRIMITIVE (Env *_env)
 {
