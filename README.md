@@ -10,7 +10,7 @@ This is a Lisp interpreter, which is so small, on AVR micro computer.
 
 ### Example
 
-```shell
+```lisp
 > 1
 ; <NUMBER> = 1.
 
