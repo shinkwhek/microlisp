@@ -8,50 +8,35 @@ Small LISP on AVR.
 
 This is a Lisp interpreter, which is so small, on AVR micro computer.
 
-Main file is "**lisp.c**". "**main.c**" is a first project file, but its garbage now.
+### Example
 
-### How to be expressive of data structure of lisp
+```shell
+> 1
+; <NUMBER> = 1.
 
-#### S-Expression
+> +
+; <PRIMITIVE>.
 
-code :arrow_down:
+> (+ 1 3 (/ 4 2) (* 7 (- 9 5)))
+; <NUMBER> = 34.
 
-```c
-typedef struct SExpr {
-  int type;
-  void *car;
-  void *cdr;
-} SExpr;
-```
+> (car (1 2))
+; <NUMBER> = 1.
 
-```
-type := <INT> // type of SExpr
-car  := <INT> | <STRING> | <SEXPR>
-cdr  := <NIL> | <SEXPR>
-```
+> (cdr (1 2))
+; <NUMBER> = 2.
 
-#### Environment
+> (cons 1 2)
+; (<SEXPR> . <SEXPR>).
 
-code :arrow_down:
+> (> 1 2)
+; <BOOL> = False.
 
-```c
-typedef struct SExpr *primFUN(struct Env *_env , SExpr *_args);
+> (= 1 1)
+; <BOOL> = True.
 
-typedef struct Env {
-  int type;
-  primFUN *fn;
-  void *car;
-  void *cdr;
-  struct Env *next;
-} Env;
-```
-
-```
-type := <INT>
-fn   := <FUNCTION>           // included primitive function
-car  := <STRING>             // Name of symbol or function
-cdr  := <INT> | <STRING>     // Symbol value or string
-next := <ENV>
+> (if (< 1 2) (+ 1 1) (- 1 1))
+; <NUMBER> = 2.
 ```
 
 ...
