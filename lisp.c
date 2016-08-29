@@ -626,12 +626,14 @@ int main (void)
 
     SExpr *root = parse(str , env);
     
-    printCons(root,0);
+    // printCons(root,0);
 
     print( eval(root , env) );
 
     // freeSEXPR(getCarAsCons(root));
     // freeSEXPR(getCdrAsCons(root));
+
+    // freeSEXPR(root);
     
     printf("\n");
   }
