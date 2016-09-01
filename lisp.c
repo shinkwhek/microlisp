@@ -498,7 +498,6 @@ static SExpr *pCdr (Env *_env , SExpr *_expr)
   return O;
 }
 // (defn X Y) -> variable | (defn (X Y) Z) -> Function
-
 static SExpr *pDefn (Env *_env , SExpr *_expr)
 {
   int l = lengthOfList(getCarAsCons(_expr));
@@ -508,6 +507,11 @@ static SExpr *pDefn (Env *_env , SExpr *_expr)
     _env = addVAR(getCarAsString(getCarAsCons(_expr)) , T , _env);
   }
   return NIL;
+}
+static SExpr *pQuit (Env *_env , SExpr *_expr)
+{
+    printf("\nGood bye. :D\n");
+    exit(1);
 }
 
 static Env *setPRIMITIVE (Env *_env)
@@ -526,6 +530,7 @@ static Env *setPRIMITIVE (Env *_env)
   r = addPRM("car"   , pCar        , r);
   r = addPRM("cdr"   , pCdr        , r);
   r = addPRM("defn"  , pDefn       , r);
+  r = addPRM("q"     , pQuit       , r);
   r = addVAR("x"     , newNUM(1,NULL) , r);
   return r;
 }
