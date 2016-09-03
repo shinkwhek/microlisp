@@ -35,7 +35,7 @@ typedef struct SExpr {
 
 struct Env;
 
-typedef struct SExpr *primFUN(struct Env *_env , struct SExpr *_args);
+typedef struct SExpr *primFUN(struct Env **_env , struct SExpr *_args);
 
 typedef struct Env {
   int        type;
@@ -75,26 +75,6 @@ static void *alloe (int _typeName)
   _new->fn   = NULL;
   _new->next = NULL;
   return _new;
-}
-static void freeSEXPR (SExpr *_expr)
-{
-  if (_expr == NIL)
-    free(_expr);
-  
-  switch(_expr->type){
-  case tCONS:{
-    if (_expr->car != NULL)
-      freeSEXPR(getCarAsCons(_expr));
-    if (_expr->cdr != NULL)
-      freeSEXPR(getCdrAsCons(_expr));
-    break;
-  }
-  default:
-    break;
-  }
-  if (_expr == NULL)
-    return;
-  free(_expr);
 }
 // [ToDo] GC mark-and-sweep
 
@@ -176,16 +156,18 @@ static void addVAR (char *envName , SExpr *val , Env **_root)
   new->next = (*_root);
   (*_root) = new;
 }
-static Env *addFUN (char *funName , SExpr *_expr , Env *_root)
+/*
+static void addFUN (char *funName , SExpr *_expr , Env **_root)
 {
   Env *new = alloe(tFUN);
   new->car = malloc(sizeof(funName));
   strcpy(getCarAsString(new) , funName);
   new->cdr = malloc(sizeof(SExpr *));
   new->cdr = _expr;
-  new->next = _root;
-  return new;
+  new->next = (*_root);
+  (*_root) = new;
 }
+*/
 static void addPRM (char *fnName , primFUN *_fn , Env **_root)
 {
   Env *new = alloe(tPRM);
@@ -195,22 +177,22 @@ static void addPRM (char *fnName , primFUN *_fn , Env **_root)
   new->next = (*_root);
   (*_root) = new;
 }
-static SExpr *findSYM (Env *_env , char *_name)
+static SExpr *findSYM (Env **_env , char *_name)
 {
-  for (Env *env = _env ; env != END ; env = env->next){
+  for (Env *env = (*_env) ; env != END ; env = env->next){
     if (env->type == tSYM &&
         strcmp(getCarAsString(env) , _name) == 0){
-      return getCdrAsCons(_env);
+      return getCdrAsCons((*_env));
     }
   }
   return NIL;
 }
 
-static SExpr *applyPRM (Env *_env , SExpr *_obj , SExpr *_args)
+static SExpr *applyPRM (Env **_env , SExpr *_obj , SExpr *_args)
 {
-  for (Env *env = _env ; env != END ; env = env->next){
+  for (Env *env = (*_env) ; env != END ; env = env->next){
     if ( strcmp( getCarAsString(env) , getCarAsString(_obj)) == 0 )
-      return env->fn(_env , _args);
+      return env->fn(&env , _args);
   }
   return NIL;
 }
@@ -241,9 +223,9 @@ static int waitBrackets (char *str)
   return i;
 }
 
-static int checkSymPrmFun (char *_str , Env *_env)
+static int checkSymPrmFun (char *_str , Env **_env)
 {
-  for (Env *p = _env ; p != END ; p = p->next){
+  for (Env *p = (*_env) ; p != END ; p = p->next){
     if (strcmp( _str , getCarAsString(p) ) == 0){
       switch(p->type){
       case tPRM:
@@ -258,7 +240,7 @@ static int checkSymPrmFun (char *_str , Env *_env)
   return tSYM;
 }
 
-static SExpr *parse (char *str , Env *_env)
+static SExpr *parse (char *str , Env **_env)
 {
   SExpr *ret = NIL;
   int i = 0;
@@ -309,9 +291,9 @@ static SExpr *parse (char *str , Env *_env)
 /**** **** **** **** **** **** **** **** ****
                Eval
  **** **** **** **** **** **** **** **** ****/
-static SExpr *eval (SExpr*, Env*);
+static SExpr *eval (SExpr*, Env**);
 
-static SExpr *apply (SExpr *_expr , SExpr *_args , Env *_env)
+static SExpr *apply (SExpr *_expr , SExpr *_args , Env **_env)
 {
   switch(_expr->type){
   case tPRM:
@@ -321,7 +303,7 @@ static SExpr *apply (SExpr *_expr , SExpr *_args , Env *_env)
   return NIL;
 }
 
-static SExpr *eval (SExpr *_expr , Env *_env)
+static SExpr *eval (SExpr *_expr , Env **_env)
 {
   switch (_expr->type){
   case tNIL:
@@ -346,7 +328,7 @@ static SExpr *eval (SExpr *_expr , Env *_env)
               Primitive
  **** **** **** **** **** **** **** **** ****/
 // ('expr)
-static SExpr *pQUOTE (Env *_env , SExpr *_expr)
+static SExpr *pQUOTE (Env **_env , SExpr *_expr)
 {
   if (lengthOfList(_expr) != 1)
     printf("QUOTE is must 1 S-Expr.\n");
@@ -354,7 +336,7 @@ static SExpr *pQUOTE (Env *_env , SExpr *_expr)
 }
 
 // (+ <NUMBER> ...
-static SExpr *pPlus (Env *_env , SExpr *_expr)
+static SExpr *pPlus (Env **_env , SExpr *_expr)
 {
   int result = 0;
   for (SExpr *p = _expr ; p != NIL ; p = p->cdr){
@@ -368,7 +350,7 @@ static SExpr *pPlus (Env *_env , SExpr *_expr)
   return newNUM(result , NULL);
 }
 // (- <NUMBER> ...
-static SExpr *pMinus (Env *_env , SExpr *_expr)
+static SExpr *pMinus (Env **_env , SExpr *_expr)
 {
   int result;
   switch(lengthOfList(_expr)){
@@ -395,7 +377,7 @@ static SExpr *pMinus (Env *_env , SExpr *_expr)
   return newNUM(result , NULL);
 }
 // (* <NUMBER> ...
-static SExpr *pMultiplied (Env *_env , SExpr *_expr)
+static SExpr *pMultiplied (Env **_env , SExpr *_expr)
 {
   int result = 1;
   for (SExpr *p = _expr ; p != NIL ; p = p->cdr){
@@ -409,7 +391,7 @@ static SExpr *pMultiplied (Env *_env , SExpr *_expr)
   return newNUM(result , NULL);
 }
 // (/ <NUMBER> ...
-static SExpr *pDivided (Env *_env , SExpr *_expr)
+static SExpr *pDivided (Env **_env , SExpr *_expr)
 {
   int result = *getCarAsInt(_expr);
   for (SExpr *p = getCdrAsCons(_expr) ; p != NIL ; p = p->cdr){
@@ -425,7 +407,7 @@ static SExpr *pDivided (Env *_env , SExpr *_expr)
   return newNUM(result , NULL);
 }
 // (> A B)
-static SExpr *pGreater (Env *_env , SExpr *_expr)
+static SExpr *pGreater (Env **_env , SExpr *_expr)
 {
   SExpr *A = eval(_expr               , _env);
   SExpr *B = eval(getCdrAsCons(_expr) , _env);
@@ -439,7 +421,7 @@ static SExpr *pGreater (Env *_env , SExpr *_expr)
   return NIL;
 }
 // (< A B)
-static SExpr *pLess (Env *_env , SExpr *_expr)
+static SExpr *pLess (Env **_env , SExpr *_expr)
 {
   SExpr *A = eval(_expr               , _env);
   SExpr *B = eval(getCdrAsCons(_expr) , _env);
@@ -453,7 +435,7 @@ static SExpr *pLess (Env *_env , SExpr *_expr)
   return NIL;
 }
 // (= A B)
-static SExpr *pEqual (Env *_env , SExpr *_expr)
+static SExpr *pEqual (Env **_env , SExpr *_expr)
 {
   SExpr *A = eval(_expr               , _env);
   SExpr *B = eval(getCdrAsCons(_expr) , _env);
@@ -467,7 +449,7 @@ static SExpr *pEqual (Env *_env , SExpr *_expr)
   return NIL;
 }
 // (if (TRUE | FALSE) A B)
-static SExpr *pIf (Env *_env , SExpr *_expr)
+static SExpr *pIf (Env **_env , SExpr *_expr)
 {
   SExpr *P = eval(_expr , _env); // TRUE | FALSE
   if (P == TRUE){
@@ -480,37 +462,37 @@ static SExpr *pIf (Env *_env , SExpr *_expr)
   return NIL;
 }
 // (cons A B) -> (A . B)
-static SExpr *pCons (Env *_env , SExpr *_expr)
+static SExpr *pCons (Env **_env , SExpr *_expr)
 {
   SExpr *A = _expr;
   SExpr *B = getCdrAsCons(_expr);
   return newCons(A , B);
 }
 // (car (A _)) -> A
-static SExpr *pCar (Env *_env , SExpr *_expr)
+static SExpr *pCar (Env **_env , SExpr *_expr)
 {
   SExpr *A = getCarAsCons(_expr);
   return A;
 }
 // (cdr (A _)) -> _
-static SExpr *pCdr (Env *_env , SExpr *_expr)
+static SExpr *pCdr (Env **_env , SExpr *_expr)
 {
   SExpr *O = getCdrAsCons(getCarAsCons(_expr));
   return O;
 }
 // (defn X Y) -> variable | (defn (X Y) Z) -> Function
-static SExpr *pDefn (Env *_env , SExpr *_expr)
+static SExpr *pDefn (Env **_env , SExpr *_expr)
 {
   if (_expr->type == tCONS){
   }else{
     // variable mode
     char  *a = getCarAsString(_expr);
     SExpr *b = eval(getCdrAsCons(_expr) , _env);
-    addVAR(a , b , &_env);
+    addVAR(a , b , _env);
   }
   return NIL;
 }
-static SExpr *pQuit (Env *_env , SExpr *_expr)
+static SExpr *pQuit (Env **_env , SExpr *_expr)
 {
     printf("\nGood bye. :D\n");
     exit(1);
@@ -570,9 +552,10 @@ static void print (SExpr *_expr)
 /**** **** **** **** **** **** **** **** ****
               Debug
  **** **** **** **** **** **** **** **** ****/
+/*
 static void printCons (SExpr *cons, int nest)
 {
-  /* Nil obj */
+   Nil obj 
   if(cons == NIL || !cons){
     printf("%*s%d::NIL \n",nest,"",nest);
     return;
@@ -604,6 +587,7 @@ static void printCons (SExpr *cons, int nest)
     }
   }
 }
+*/
 static void viewEnv (Env *_env)
 {
   for (Env *r = _env; r != END; r = r->next){
@@ -636,11 +620,11 @@ int main (void)
     printf("> ");
     fgets(str,255,stdin);
 
-    SExpr *root = parse(str , env);
+    SExpr *root = parse(str , &env);
     
     // printCons(root,0);
 
-    print( eval(root , env) );
+    print( eval(root , &env) );
     viewEnv(env);
     // freeSEXPR(getCarAsCons(root));
     // freeSEXPR(getCdrAsCons(root));
