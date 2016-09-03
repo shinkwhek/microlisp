@@ -159,7 +159,7 @@ static char *readCharToken (char *_str)
 static int lengthOfList (SExpr *_expr)
 {
   int len = 0;
-  for (SExpr *r = _expr ; r != NIL ; r = r->cdr) {
+  for (SExpr *r = _expr ; r != NIL && r != NULL ; r = r->cdr) {
     ++len;
   }
   return len;
@@ -167,14 +167,14 @@ static int lengthOfList (SExpr *_expr)
 /**** **** **** **** **** **** **** **** ***
                Env
  **** **** **** **** **** **** **** **** ****/
-static Env *addVAR (char *envName , SExpr *val , Env *_root)
-{ 
+static void addVAR (char *envName , SExpr *val , Env **_root)
+{
   Env *new = alloe(tSYM);
   new->car = malloc(sizeof(envName));
   strcpy(getCarAsString(new) , envName);
   new->cdr = val;
-  new->next = _root;
-  return new;
+  new->next = (*_root);
+  (*_root) = new;
 }
 static Env *addFUN (char *funName , SExpr *_expr , Env *_root)
 {
@@ -219,7 +219,7 @@ static SExpr *applyPRM (Env *_env , SExpr *_obj , SExpr *_args)
  **** **** **** **** **** **** **** **** ****/
 static SExpr *nReverse (SExpr *_expr)
 {
-   SExpr *ret = NIL;
+  SExpr *ret = NIL;
   while (_expr != NIL ){
     SExpr *tmp = _expr;
     _expr = getCdrAsCons(_expr);
@@ -330,7 +330,8 @@ static SExpr *eval (SExpr *_expr , Env *_env)
   case tFUN:
     return _expr;
   case tSYM:{
-    return findSYM(_env , getCarAsString(_expr));
+    SExpr* a = findSYM(_env , getCarAsString(_expr));
+    return eval(a , _env);
   }
   case tCONS:{
     SExpr *expr = eval(getCarAsCons(_expr) , _env);
@@ -500,11 +501,12 @@ static SExpr *pCdr (Env *_env , SExpr *_expr)
 // (defn X Y) -> variable | (defn (X Y) Z) -> Function
 static SExpr *pDefn (Env *_env , SExpr *_expr)
 {
-  int l = lengthOfList(getCarAsCons(_expr));
-  if (l == 1){
+  if (_expr->type == tCONS){
+  }else{
     // variable mode
-    SExpr *T = eval(getCdrAsCons(_expr) , _env);
-    _env = addVAR(getCarAsString(getCarAsCons(_expr)) , T , _env);
+    char  *a = getCarAsString(_expr);
+    SExpr *b = eval(getCdrAsCons(_expr) , _env);
+    addVAR(a , b , &_env);
   }
   return NIL;
 }
@@ -531,7 +533,7 @@ static Env *setPRIMITIVE (Env *_env)
   r = addPRM("cdr"   , pCdr        , r);
   r = addPRM("defn"  , pDefn       , r);
   r = addPRM("q"     , pQuit       , r);
-  r = addVAR("x"     , newNUM(1,NULL) , r);
+  addVAR("x"     , newNUM(1,NULL) , &r);
   return r;
 }
 /**** **** **** **** **** **** **** **** ****
@@ -604,6 +606,13 @@ static void printCons (SExpr *cons, int nest)
     }
   }
 }
+static void viewEnv (Env *_env)
+{
+  for (Env *r = _env; r != END; r = r->next){
+    printf("type:%d  ", r->type);
+    printf("name:%s\n", getCarAsString(r));
+  }
+}
 /**** **** **** **** **** **** **** **** ****
                Main Loop
  **** **** **** **** **** **** **** **** ****/
@@ -634,7 +643,7 @@ int main (void)
     // printCons(root,0);
 
     print( eval(root , env) );
-
+    viewEnv(env);
     // freeSEXPR(getCarAsCons(root));
     // freeSEXPR(getCdrAsCons(root));
 
