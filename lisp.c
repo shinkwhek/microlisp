@@ -186,14 +186,14 @@ static Env *addFUN (char *funName , SExpr *_expr , Env *_root)
   new->next = _root;
   return new;
 }
-static Env *addPRM (char *fnName , primFUN *_fn , Env *_root)
+static void addPRM (char *fnName , primFUN *_fn , Env **_root)
 {
   Env *new = alloe(tPRM);
   new->car = malloc(sizeof(fnName));
   strcpy(getCarAsString(new) , fnName);
   new->fn = _fn;
-  new->next = _root;
-  return new;
+  new->next = (*_root);
+  (*_root) = new;
 }
 static SExpr *findSYM (Env *_env , char *_name)
 {
@@ -516,25 +516,23 @@ static SExpr *pQuit (Env *_env , SExpr *_expr)
     exit(1);
 }
 
-static Env *setPRIMITIVE (Env *_env)
+static void setPRIMITIVE (Env **_env)
 {
-  Env *r = _env;
-  r = addPRM("QUOTE" , pQUOTE      , r);
-  r = addPRM("+"     , pPlus       , r);
-  r = addPRM("-"     , pMinus      , r);
-  r = addPRM("*"     , pMultiplied , r);
-  r = addPRM("/"     , pDivided    , r);
-  r = addPRM(">"     , pGreater    , r);
-  r = addPRM("<"     , pLess       , r);
-  r = addPRM("="     , pEqual      , r);
-  r = addPRM("if"    , pIf         , r);
-  r = addPRM("cons"  , pCons       , r);
-  r = addPRM("car"   , pCar        , r);
-  r = addPRM("cdr"   , pCdr        , r);
-  r = addPRM("defn"  , pDefn       , r);
-  r = addPRM("q"     , pQuit       , r);
-  addVAR("x"     , newNUM(1,NULL) , &r);
-  return r;
+  addPRM("QUOTE" , pQUOTE      , _env);
+  addPRM("+"     , pPlus       , _env);
+  addPRM("-"     , pMinus      , _env);
+  addPRM("*"     , pMultiplied , _env);
+  addPRM("/"     , pDivided    , _env);
+  addPRM(">"     , pGreater    , _env);
+  addPRM("<"     , pLess       , _env);
+  addPRM("="     , pEqual      , _env);
+  addPRM("if"    , pIf         , _env);
+  addPRM("cons"  , pCons       , _env);
+  addPRM("car"   , pCar        , _env);
+  addPRM("cdr"   , pCdr        , _env);
+  addPRM("defn"  , pDefn       , _env);
+  addPRM("q"     , pQuit       , _env);
+  addVAR("x"     , newNUM(1,NULL) , _env);
 }
 /**** **** **** **** **** **** **** **** ****
               for User
@@ -626,7 +624,7 @@ int main (void)
   
   Env *env = END;
 
-  env = setPRIMITIVE(env);
+  setPRIMITIVE(&env);
 
   char str[255];
   
