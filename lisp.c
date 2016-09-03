@@ -195,11 +195,11 @@ static Env *addPRM (char *fnName , primFUN *_fn , Env *_root)
   new->next = _root;
   return new;
 }
-static SExpr *findSYM (Env *_env , SExpr *_expr)
+static SExpr *findSYM (Env *_env , char *_name)
 {
   for (Env *env = _env ; env != END ; env = env->next){
-    if (_expr->type == tSYM &&
-        strcmp(getCarAsString(env) , getCarAsString(_expr)) == 0){
+    if (env->type == tSYM &&
+        strcmp(getCarAsString(env) , _name) == 0){
       return getCdrAsCons(_env);
     }
   }
@@ -330,7 +330,7 @@ static SExpr *eval (SExpr *_expr , Env *_env)
   case tFUN:
     return _expr;
   case tSYM:{
-    return findSYM(_env , _expr);
+    return findSYM(_env , getCarAsString(_expr));
   }
   case tCONS:{
     SExpr *expr = eval(getCarAsCons(_expr) , _env);
