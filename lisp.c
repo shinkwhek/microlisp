@@ -39,8 +39,8 @@ typedef struct SExpr *primFUN(struct Env **_env , struct SExpr *_args);
 typedef struct Env {
   int        type;
   primFUN    *fn;
-  void       *car;
-  void       *cdr;
+  SExpr      *head;
+  SExpr      *body;
   struct Env *next;
 } Env;
 
@@ -70,8 +70,8 @@ static void *alloe (int _typeName)
   Env *_new = malloc(sizeof(Env));
   _new->type = _typeName;
   _new->fn   = NULL;
-  _new->car  = NULL;
-  _new->cdr  = NULL;
+  _new->head  = NULL;
+  _new->body  = NULL;
   _new->next = NULL;
   return _new;
 }
@@ -183,9 +183,9 @@ static Env *addFUN (SExpr *fhead , SExpr *body , Env **_root)
 
 static SExpr *findSPF (Env **_env , char *_name , int _typename)
 {
-  for (Env *env = (*_env) ; env != END ; env = env->next){
-    if (env->type == _typename && strcmp(getCarAsString(env) , _name) == 0){
-      return getCdrAsCons((*_env));
+  for (Env *e = (*_env) ; e != END ; e = e->next){
+    if (e->type == _typename && strcmp(getCarAsString(e->head) , _name) == 0){
+      return getCdrAsCons(e->head);
     }
   }
   return NIL;
@@ -222,7 +222,7 @@ static int waitBrackets (char *str)
 static int checkSymPrmFun (char *_str , Env **_env)
 {
   for (Env *p = (*_env) ; p != END ; p = p->next){
-    if (strcmp( _str , getCarAsString(p) ) == 0){
+    if (strcmp( _str , getCarAsString(p->head) ) == 0){
       switch(p->type){
       case tPRM:
         return tPRM;
@@ -294,7 +294,7 @@ static SExpr *apply (SExpr *_expr , SExpr *_args , Env **_env)
   switch(_expr->type){
   case tPRM:{
     for (Env *e = (*_env) ; e != END ; e = e->next){
-      if (strcmp(getCarAsString(e) , getCarAsString(_expr)) == 0)
+      if (strcmp(getCarAsString(e->head) , getCarAsString(_expr)) == 0)
         return e->fn(&e , _args);
     }
     printf("Don't find in Env.\n");
@@ -328,8 +328,16 @@ static SExpr *eval (SExpr *_expr , Env **_env)
 /**** **** **** **** **** **** **** **** ****
               Primitive
  **** **** **** **** **** **** **** **** ****/
-
 static void defPRM (char *fnName , primFUN *_fn , Env **_root)
+{
+  Env *_new = alloe(tPRM);
+  _new->head = newSPF(fnName,NIL,tPRM);
+  _new->fn = _fn;
+  _new->next = (*_root);
+  (*_root) = _new;
+}
+/*
+static void defPRM2 (char *fnName , primFUN *_fn , Env **_root)
 {
   Env *new = alloe(tPRM);
   new->car = malloc(sizeof(fnName));
@@ -338,7 +346,7 @@ static void defPRM (char *fnName , primFUN *_fn , Env **_root)
   new->next = (*_root);
   (*_root) = new;
 }
-
+*/
 // ('expr)
 static SExpr *pQUOTE (Env **_env , SExpr *_expr)
 {
@@ -607,12 +615,7 @@ static void viewEnv (Env *_env)
   for (Env *r = _env; r != END; r = r->next){
     printf("type:%d  ", r->type);
     if (r->type == tPRM)
-      printf("name:%s\n", getCarAsString(r));
-    if (r->type == tFUN){
-      char *fname = getCarAsString(getCarAsCons(_env));
-      char *vname = getCarAsString(getCdrAsCons(getCarAsCons(_env)));
-      printf("name:%s , varname: %s\n", fname,vname);
-    }
+      printf("name:%s\n", getCarAsString(r->head));
   }
 }
 /**** **** **** **** **** **** **** **** ****
