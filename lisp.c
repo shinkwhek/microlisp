@@ -49,6 +49,8 @@ static SExpr *TRUE;
 static SExpr *FALSE;
 static Env   *END;
 
+static SExpr *eval (SExpr*, Env**);
+
 #define getCarAsInt(_expr)    ((int*)_expr->car)
 #define getCarAsString(_expr) ((char*)_expr->car)
 #define getCarAsCons(_expr)   ((SExpr*)_expr->car)
@@ -248,18 +250,28 @@ static void addVAR (char *_vname , SExpr *_val , Env **_root , int _typename)
   int type = tSYM;
   Env *_new = alloe(type);
   if (_typename == tSYM){
-    type = tSYM;
     _new->head = newSPF(_vname , _val , tSYM);
-    _new->head->cdr = _val;
   }
   _new->next = *_root;
   *_root = _new;
 }
 
+static Env* addListVAR (SExpr *_vnameList , SExpr *_valList , Env **_root)
+{
+  Env *_new = *_root;
+  for (SExpr *vnameList = _vnameList, *valList = _valList; vnameList != NIL; vnameList = vnameList->cdr, valList = valList->cdr) {
+    Env *tmp = alloe(tSYM);
+    tmp->head = newSPF(getCarAsString(vnameList) , eval(valList , &_new) , tSYM);
+    tmp->next = _new;
+    _new = tmp;
+  }
+  return _new;
+}
+
 /**** **** **** **** **** **** **** **** ****
                Eval
  **** **** **** **** **** **** **** **** ****/
-static SExpr *eval (SExpr*, Env**);
+
 
 static SExpr *findSPF (Env *_env , char *_name , int _typename)
 {
@@ -283,6 +295,13 @@ static SExpr *apply (SExpr *_expr , SExpr *_args , Env **_env)
     printf("Don't find in Env.\n");
     return NIL;
   }
+  case tFUN:{
+    SExpr *symbols = _expr->car;
+    SExpr *body    = _expr->cdr;
+    Env *tmpEnv = *_env;
+    tmpEnv = addListVAR(symbols , _args , &tmpEnv);
+    return eval( body , &tmpEnv );
+  }  
   }
   return NIL;
 }
@@ -483,7 +502,13 @@ static SExpr *pDefine (Env **_env , SExpr *_expr)
   return body;
 }
 // (lambda (x ..) expr ..)
-
+static SExpr *pLambda (Env **_env , SExpr *_expr)
+{
+  SExpr *_new = alloc(tFUN);
+  _new->car = _expr->car; // symbols
+  _new->cdr = _expr->cdr; // body
+  return _new;
+}
 // (q) -- quit
 static SExpr *pQuit (Env **_env , SExpr *_expr)
 {
@@ -507,7 +532,7 @@ static void setPRIMITIVE (Env **_env)
   defPRM("cdr"   , pCdr        , _env);
   defPRM("q"     , pQuit       , _env);
   defPRM("define", pDefine     , _env);
-  //defPRM("lambda", pLambda     , _env);
+  defPRM("lambda", pLambda     , _env);
  }
 /**** **** **** **** **** **** **** **** ****
               for User
@@ -527,8 +552,11 @@ static void print (SExpr *_expr)
     case tPRM:
       printf("<PRIMITIVE>.");
       return;
+    case tFUN:
+      printf("<FUNCTION>.");
+      return;
     case tCONS:
-      printf("(<SEXPR> . <SEXPR>)");
+      printf("<CONS>.");
       return;
     default:{
       if (_expr == TRUE){
