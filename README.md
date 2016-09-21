@@ -49,6 +49,15 @@ This is a Lisp interpreter, which is so small, on AVR micro computer.
 
 > (plus x x)
 ; <NUMBER> = 2.
+
+> ((lambda (x) (+ x x)) 3)
+; <NUMBER> = 6.
+
+> (define f (lambda (x y) (* x y)))
+; <CONS>.
+
+> (f 3 4)
+; <NUMBER> = 12.
 ```
 
 ...
