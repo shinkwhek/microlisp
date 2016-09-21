@@ -37,6 +37,18 @@ This is a Lisp interpreter, which is so small, on AVR micro computer.
 
 > (if (< 1 2) (+ 1 1) (- 1 1))
 ; <NUMBER> = 2.
+
+> (define x 1)
+; <NUMBER> = 1.
+
+> x
+; <NUMBER> = 1.
+
+> (define plus +)
+; <PRIMITIVE>.
+
+> (plus x x)
+; <NUMBER> = 2.
 ```
 
 ...
