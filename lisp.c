@@ -17,6 +17,14 @@
 
 const char symbol_chars[] = "!%^*-=+/\\<>";
 
+#define tNIL  (0)
+#define tNUM  (1)
+#define tSYM  (2)
+#define tFUN  (3)
+#define tPRM  (4)
+#define tCONS (5)
+
+/*
 enum {
   tNIL = 0,
   tNUM,
@@ -25,7 +33,7 @@ enum {
   tPRM,
   tCONS
 };
-
+*/
 typedef struct SExpr {
   int  type;
   void *car;
@@ -49,7 +57,6 @@ static SExpr *TRUE;
 static SExpr *FALSE;
 static Env   *END;
 
-static SExpr *eval (SExpr*, Env**);
 
 #define getCarAsInt(_expr)    ((int*)_expr->car)
 #define getCarAsString(_expr) ((char*)_expr->car)
@@ -121,11 +128,17 @@ static SExpr *newSPF (char *_name , void *_cdr , int _typename){
 
 static int readChar2Int (char *_str)
 {
-  int i = 0;
+  int i   = 0;
   int out = 0;
-  while(0 <= (_str[i]-'0') && (_str[i]-'0') <= 9){
-    out = out*10 + (_str[i]-'0');
-    ++i;
+  if ( _str[0] == '0' && _str[1] == 'b' ){
+    i = 3;
+    //while(){
+    //}
+  }else{
+    while(0 <= (_str[i]-'0') && (_str[i]-'0') <= 9){
+      out = out*10 + (_str[i]-'0');
+      ++i;
+    }
   }
   return out;
 }
@@ -244,6 +257,7 @@ static SExpr *parse (char *str , Env *_env)
 /**** **** **** **** **** **** **** **** ***
                     Env
  **** **** **** **** **** **** **** **** ****/
+static SExpr *eval (SExpr*, Env**);
 
 static void addVAR (char *_vname , SExpr *_val , Env **_root , int _typename)
 {
