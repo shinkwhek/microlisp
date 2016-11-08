@@ -24,16 +24,6 @@ const char symbol_chars[] = "!%^*-=+/\\<>";
 #define tPRM  (4)
 #define tCONS (5)
 
-/*
-enum {
-  tNIL = 0,
-  tNUM,
-  tSYM,
-  tFUN,
-  tPRM,
-  tCONS
-};
-*/
 typedef struct SExpr {
   int  type;
   void *car;
@@ -57,7 +47,6 @@ static SExpr *TRUE;
 static SExpr *FALSE;
 static Env   *END;
 
-
 #define getCarAsInt(_expr)    ((int*)_expr->car)
 #define getCarAsString(_expr) ((char*)_expr->car)
 #define getCarAsCons(_expr)   ((SExpr*)_expr->car)
@@ -67,22 +56,22 @@ static Env   *END;
  **** **** **** **** **** **** **** **** ****/
 static void *alloc (int _typeName)
 {
-  SExpr *_new = malloc(sizeof(SExpr));
-  _new->type = _typeName;
-  _new->car = NULL;
-  _new->cdr = NULL;
-  return _new;
+  SExpr *_newSExpr = malloc(sizeof(SExpr));
+  _newSExpr->type = _typeName;
+  _newSExpr->car = NULL;
+  _newSExpr->cdr = NULL;
+  return _newSExpr;
 }
 
 static void *alloe (int _typeName)
 {
-  Env *_new = malloc(sizeof(Env));
-  _new->type = _typeName;
-  _new->fn   = NULL;
-  _new->head  = NULL;
-  _new->body  = NULL;
-  _new->next = NULL;
-  return _new;
+  Env *_newEnv = malloc(sizeof(Env));
+  _newEnv->type = _typeName;
+  _newEnv->fn   = NULL;
+  _newEnv->head  = NULL;
+  _newEnv->body  = NULL;
+  _newEnv->next = NULL;
+  return _newEnv;
 }
 // [ToDo] GC mark-and-sweep
 
@@ -93,39 +82,35 @@ static void *alloe (int _typeName)
 // (_car . _cdr).
 static SExpr *cons (void *_car , void *_cdr)
 {
-  SExpr *_new = alloc(tCONS);
-  _new->car = _car;
-  _new->cdr = _cdr;
-  return _new;
+  SExpr *_newCons = alloc(tCONS);
+  _newCons->car = _car;
+  _newCons->cdr = _cdr;
+  return _newCons;
 }
 static SExpr *newNUM (int _value , void *_cdr)
 {
-  SExpr *_new = alloc(tNUM);
-  _new->car = malloc(sizeof(_value));
-  *getCarAsInt(_new) = _value;
-  _new->cdr = _cdr;
-  return _new;
+  SExpr *_newCons = alloc(tNUM);
+  _newCons->car = malloc(sizeof(_value));
+  *getCarAsInt(_newCons) = _value;
+  _newCons->cdr = _cdr;
+  return _newCons;
 }
 static SExpr *newSPF (char *_name , void *_cdr , int _typename){
   int _type;
-  switch(_typename){
-  case tSYM:
+  if (_typename == tSYM)
     _type = tSYM;
-    break;
-  case tPRM:
+  else if (_typename == tPRM)
     _type = tPRM;
-    break;
-  case tFUN:
+  else if (_typename == tFUN)
     _type = tFUN;
-    break;
-  }
-  SExpr *new = alloc(_type);
-  new->car = malloc(sizeof(_name));
-  strcpy(getCarAsString(new) , _name);
-  new->cdr = _cdr;
-  return new;
+  else
+    _type = tNIL;
+  SExpr *_newCons = alloc(_type);
+  _newCons->car = malloc(sizeof(_name));
+  strcpy(getCarAsString(_newCons) , _name);
+  _newCons->cdr = _cdr;
+  return _newCons;
 }
-
 static int readChar2Int (char *_str)
 {
   int i   = 0;
@@ -145,12 +130,12 @@ static int readChar2Int (char *_str)
 static char *readCharToken (char *_str)
 {
   int i = 0;
-  char *r = (char *)malloc(sizeof(char *));
+  char *out = (char *)malloc(sizeof(char *));
   while(_str[i] != ' '&& _str[i] != ')' && _str[i] && _str[i] != '\0' && _str[i] != '\n'){
-    r[i] = r[i] + _str[i];
+    out[i] = out[i] + _str[i];
     i++;
   }
-  return r;
+  return out;
 }
 static int lengthOfList (SExpr *_expr)
 {
@@ -167,19 +152,19 @@ static int lengthOfList (SExpr *_expr)
  **** **** **** **** **** **** **** **** ****/
 static SExpr *nReverse (SExpr *_expr)
 {
-  SExpr *ret = NIL;
+  SExpr *r = NIL;
   while (_expr != NIL ){
     SExpr *tmp = _expr;
     _expr = getCdrAsCons(_expr);
-    tmp->cdr = ret;
-    ret = tmp;
+    tmp->cdr = r;
+    r = tmp;
   }
-  return ret;
+  return r;
 }
 static int waitBrackets (char *str)
 {
-  int i = 0;
-  int lCnt  = 1;
+  int i    = 0;
+  int lCnt = 1;
   int rCnt = 0;
   while (lCnt != rCnt){
     if (str[i] == '('){ lCnt++; }
@@ -208,7 +193,7 @@ static int checkSymPrmFun (char *_str , Env *_env)
 
 static SExpr *parse (char *str , Env *_env)
 {
-  SExpr *ret = NIL;
+  SExpr *r = NIL;
   int i = 0;
   while (str[i] != '\0' && str[i]){
     /* ---- ---- ---- Ignore space ---- ---- ---- */
@@ -217,14 +202,14 @@ static SExpr *parse (char *str , Env *_env)
       continue;
     /* ---- ---- ---- Init Cons ---- ---- ---- */
     }else if ( str[i] == '('){
-      ret = cons( parse(&str[i+1] , _env), ret);
+      r = cons( parse(&str[i+1] , _env), r);
       i = i + waitBrackets(&str[i+1]);
     /* ---- ---- ---- End Cons ---- ---- ---- */
     }else if ( str[i] == ')'){
-      return nReverse(ret);
+      return nReverse(r);
     /* ---- ---- ---- S-Expr of Number ---- ---- ---- */
     }else if ( isdigit(str[i])){
-      ret = newNUM( readChar2Int(&str[i]), ret);
+      r = newNUM( readChar2Int(&str[i]), r);
       while( str[i] != ' ' && str[i] != ')' && str[i]){i++;}
       if (str[i] == ')'){break;}
     /* ---- ---- ---- S-Expr of Symbol | Function | Primitive ---- ---- ---- */
@@ -232,13 +217,13 @@ static SExpr *parse (char *str , Env *_env)
       char *Token = readCharToken(&str[i]);
       switch( checkSymPrmFun(Token , _env) ){
       case tSYM:
-        ret = newSPF(Token , ret , tSYM);
+        r = newSPF(Token , r , tSYM);
         break;
       case tPRM:
-        ret = newSPF(Token , ret , tPRM);
+        r = newSPF(Token , r , tPRM);
         break;
       case tFUN:
-        ret = newSPF(Token , ret , tFUN);
+        r = newSPF(Token , r , tFUN);
         break;
       default:
         printf("env type error.\n");
@@ -252,7 +237,7 @@ static SExpr *parse (char *str , Env *_env)
     }
     ++i;
   }
-  return nReverse(ret);
+  return nReverse(r);
 }
 /**** **** **** **** **** **** **** **** ***
                     Env
