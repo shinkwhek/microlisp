@@ -350,7 +350,7 @@ static SExpr *pPlus (Env **_env , SExpr *_expr)
   for (SExpr *p = _expr ; p != NIL ; p = p->cdr){
     SExpr *T = eval(p , _env);
     if (T->type != tNUM) printf("pPlus must take number.\n");
-    else result += *getCarAsInt(T);
+    else                 result += *getCarAsInt(T);
   }
   return newNUM(result , NIL);
 }
@@ -371,7 +371,7 @@ static SExpr *pMinus (Env **_env , SExpr *_expr)
     for (SExpr *p = getCdrAsCons(_expr) ; p != NIL ; p = p->cdr){
       SExpr *r = eval(p , _env);
       if (r->type != tNUM) printf("pMinus must take number.\n");
-      else result -= *getCarAsInt(r);
+      else                 result -= *getCarAsInt(r);
     }
   }
   return newNUM(result , NIL);
@@ -383,7 +383,7 @@ static SExpr *pMultiplied (Env **_env , SExpr *_expr)
   for (SExpr *p = _expr ; p != NIL ; p = p->cdr){
     SExpr *T = eval(p , _env);
     if (T->type != tNUM) printf("pMultiplied must take number.\n");
-    else result *= *getCarAsInt(T);
+    else                 result *= *getCarAsInt(T);
   }
   return newNUM(result , NIL);
 }
@@ -393,9 +393,9 @@ static SExpr *pDivided (Env **_env , SExpr *_expr)
   int result = *getCarAsInt(_expr);
   for (SExpr *p = getCdrAsCons(_expr) ; p != NIL ; p = p->cdr){
     SExpr *T = eval(p , _env);
-    if (T->type != tNUM) printf("pDivided must take number.\n");
-    else if(*getCarAsInt(T) == 0) printf("Cannot divided by zero.\n");
-    else result /= *getCarAsInt(T);
+    if      (T->type != tNUM)      printf("pDivided must take number.\n");
+    else if (*getCarAsInt(T) == 0) printf("Cannot divided by zero.\n");
+    else                           result /= *getCarAsInt(T);
   }
   return newNUM(result , NIL);
 }
@@ -404,13 +404,9 @@ static SExpr *pGreater (Env **_env , SExpr *_expr)
 {
   SExpr *A = eval(_expr               , _env);
   SExpr *B = eval(getCdrAsCons(_expr) , _env);
-  if (*getCarAsInt(A) > *getCarAsInt(B)){
-    return TRUE;
-  }else if ( !(*getCarAsInt(A) > *getCarAsInt(B)) ){
-    return FALSE;
-  }else{
-    printf("pGreater error.\n");
-  }
+  if      (*getCarAsInt(A) > *getCarAsInt(B))      return TRUE;
+  else if ( !(*getCarAsInt(A) > *getCarAsInt(B)) ) return FALSE;
+  else                                             printf("pGreater error.\n");
   return NIL;
 }
 // (< A B)
@@ -418,13 +414,9 @@ static SExpr *pLess (Env **_env , SExpr *_expr)
 {
   SExpr *A = eval(_expr               , _env);
   SExpr *B = eval(getCdrAsCons(_expr) , _env);
-  if (*getCarAsInt(A) < *getCarAsInt(B)){
-    return TRUE;
-  }else if ( !(*getCarAsInt(A) < *getCarAsInt(B)) ){
-    return FALSE;
-  }else{
-    printf("pLess error.\n");
-  }
+  if      (*getCarAsInt(A) < *getCarAsInt(B))      return TRUE;
+  else if ( !(*getCarAsInt(A) < *getCarAsInt(B)) ) return FALSE;
+  else                                             printf("pLess error.\n");
   return NIL;
 }
 // (= A B)
@@ -432,26 +424,18 @@ static SExpr *pEqual (Env **_env , SExpr *_expr)
 {
   SExpr *A = eval(_expr               , _env);
   SExpr *B = eval(getCdrAsCons(_expr) , _env);
-  if (*getCarAsInt(A) == *getCarAsInt(B)){
-    return TRUE;
-  }else if( !(*getCarAsInt(A) == *getCarAsInt(B)) ){
-    return FALSE;
-  }else{
-    printf("pEqual error.\n");
-  }
+  if      (*getCarAsInt(A) == *getCarAsInt(B))      return TRUE;
+  else if ( !(*getCarAsInt(A) == *getCarAsInt(B)) ) return FALSE;
+  else                                              printf("pEqual error.\n");
   return NIL;
 }
 // (if (TRUE | FALSE) A B)
 static SExpr *pIf (Env **_env , SExpr *_expr)
 {
   SExpr *P = eval(_expr , _env); // TRUE | FALSE
-  if (P == TRUE){
-    return eval(getCdrAsCons(_expr) , _env);
-  }else if (P == FALSE){
-    return eval(getCdrAsCons(getCdrAsCons(_expr)) , _env);
-  }else{
-    printf("pIf error.\n");
-  }
+  if      (P == TRUE)  return eval(getCdrAsCons(_expr) , _env);
+  else if (P == FALSE) return eval(getCdrAsCons(getCdrAsCons(_expr)) , _env);
+  else                 printf("pIf error.\n");
   return NIL;
 }
 // (cons A B) -> (A . B)
@@ -499,7 +483,7 @@ static SExpr *pQuit (Env **_env , SExpr *_expr)
 
 static void setPRIMITIVE (Env **_env)
 {
-  defPRM("quote" , pQUOTE      , _env);
+  defPRM("quo"   , pQUOTE      , _env);
   defPRM("-"     , pMinus      , _env);
   defPRM("*"     , pMultiplied , _env);
   defPRM("+"     , pPlus       , _env);
@@ -512,8 +496,8 @@ static void setPRIMITIVE (Env **_env)
   defPRM("car"   , pCar        , _env);
   defPRM("cdr"   , pCdr        , _env);
   defPRM("q"     , pQuit       , _env);
-  defPRM("define", pDefine     , _env);
-  defPRM("lambda", pLambda     , _env);
+  defPRM("def"   , pDefine     , _env);
+  defPRM("\\"    , pLambda     , _env);
  }
 /**** **** **** **** **** **** **** **** ****
               for User
@@ -550,57 +534,6 @@ static void print (SExpr *_expr)
   }
 }
 /**** **** **** **** **** **** **** **** ****
-              Debug
- **** **** **** **** **** **** **** **** ****/
-/*
-static void printCons (SExpr *cons, int nest)
-{
-   Nil obj 
-  if(cons == NIL || !cons){
-    printf("%*s%d::NIL \n",nest,"",nest);
-    return;
-    
-  }else{
-    switch (cons->type){
-    case tNUM:
-      printf("%*s%d::tNUM::%d\n",nest,"",nest, *getCarAsInt(cons));
-      printCons( getCdrAsCons(cons) , nest);
-      break;
-    case tSYM:
-      printf("%*s%d::tSYM::%s\n",nest,"",nest, getCarAsString(cons));
-      printCons( getCdrAsCons(cons) , nest);
-      break;
-    case tFUN:
-      printf("%*s%d::tFUN::%s\n",nest,"",nest, getCarAsString(cons));
-      printCons( getCdrAsCons(cons) , nest);
-      break;
-    case tPRM:
-      printf("%*s%d::tPRM::%s\n",nest,"",nest, getCarAsString(cons));
-      printCons( getCdrAsCons(cons) , nest);
-      break;
-    case tCONS:
-      printCons( getCarAsCons(cons), nest + 1);
-      printCons( getCdrAsCons(cons), nest);
-      break;
-    default:
-      printf("print error.\n");
-    }
-  }
-}
-*/
-/*
-static void viewEnv (Env *_env)
-{
-  for (Env *r = _env; r != END; r = r->next){
-    printf("type:%d  ", r->type);
-    if (r->type == tPRM)
-      printf("name:%s\n", getCarAsString(r->head));
-    if (r->type == tSYM)
-      printf("name:%s\n", getCarAsString(r->head));
-  }
-}
-*/
-/**** **** **** **** **** **** **** **** ****
                Main Loop
  **** **** **** **** **** **** **** **** ****/
 int main (void)
@@ -630,17 +563,15 @@ int main (void)
 
     SExpr *root = parse(str , env);
     
-    // printCons(root,0);
-
     printf("; ");
     print( eval(root , &env) );
     printf("\n");
-    
-    
-    
-    
-    printf("\n");
   }
 
+  free(NIL);
+  free(TRUE);
+  free(FALSE);
+  free(END);
+  
   return 0;
 }
