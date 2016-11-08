@@ -382,11 +382,8 @@ static SExpr *pMultiplied (Env **_env , SExpr *_expr)
   int result = 1;
   for (SExpr *p = _expr ; p != NIL ; p = p->cdr){
     SExpr *T = eval(p , _env);
-    if (T->type != tNUM){
-      printf("pMultiplied must take number.\n");
-    }else{
-      result *= *getCarAsInt(T);
-    }
+    if (T->type != tNUM) printf("pMultiplied must take number.\n");
+    else result *= *getCarAsInt(T);
   }
   return newNUM(result , NIL);
 }
@@ -396,13 +393,9 @@ static SExpr *pDivided (Env **_env , SExpr *_expr)
   int result = *getCarAsInt(_expr);
   for (SExpr *p = getCdrAsCons(_expr) ; p != NIL ; p = p->cdr){
     SExpr *T = eval(p , _env);
-    if (T->type != tNUM){
-      printf("pDivided must take number.\n");
-    }else if(*getCarAsInt(T) == 0){
-      printf("Cannot divided by zero.\n");
-    }else{
-      result /= *getCarAsInt(T);
-    }
+    if (T->type != tNUM) printf("pDivided must take number.\n");
+    else if(*getCarAsInt(T) == 0) printf("Cannot divided by zero.\n");
+    else result /= *getCarAsInt(T);
   }
   return newNUM(result , NIL);
 }
