@@ -258,11 +258,9 @@ static Env* addListVAR (SExpr *_vnameList , SExpr *_valList , Env **_root)
 
 static SExpr *findSPF (Env *_env , char *_name , int _typename)
 {
-  for (Env *e = _env ; e != END ; e = e->next){
-    if (e->type == _typename && strcmp(getCarAsString(e->head) , _name) == 0){
+  for (Env *e = _env ; e != END ; e = e->next)
+    if (e->type == _typename && strcmp(getCarAsString(e->head) , _name) == 0)
       return getCdrAsCons(e->head);
-    }
-  }
   printf("dont find spf.");
   return NIL;
 }
@@ -271,10 +269,10 @@ static SExpr *apply (SExpr *_expr , SExpr *_args , Env **_env)
 {
   switch(_expr->type){
   case tPRM:{
-    for (Env *e = *_env ; e != END ; e = e->next){
+    for (Env *e = *_env ; e != END ; e = e->next)
       if (e->type == tPRM && strcmp(getCarAsString(e->head),getCarAsString(_expr)) == 0)
         return e->fn(_env , _args);
-    }
+    
     printf("Don't find in Env.\n");
     return NIL;
   }
