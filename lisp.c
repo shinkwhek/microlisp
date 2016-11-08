@@ -117,8 +117,6 @@ static int readChar2Int (char *_str)
   int out = 0;
   if ( _str[0] == '0' && _str[1] == 'b' ){
     i = 3;
-    //while(){
-    //}
   }else{
     while(0 <= (_str[i]-'0') && (_str[i]-'0') <= 9){
       out = out*10 + (_str[i]-'0');
@@ -341,8 +339,7 @@ static void defPRM (char *fnName , primFUN *_fn , Env **_root)
 // ('expr)
 static SExpr *pQUOTE (Env **_env , SExpr *_expr)
 {
-  if (lengthOfList(_expr) != 1)
-    printf("QUOTE is must 1 S-Expr.\n");
+  if (lengthOfList(_expr) != 1) printf("QUOTE is must 1 S-Expr.\n");
   return _expr;
 }
 
@@ -352,11 +349,8 @@ static SExpr *pPlus (Env **_env , SExpr *_expr)
   int result = 0;
   for (SExpr *p = _expr ; p != NIL ; p = p->cdr){
     SExpr *T = eval(p , _env);
-    if (T->type != tNUM){
-      printf("pPlus must take number.\n");
-    }else{
-      result += *getCarAsInt(T);
-    }
+    if (T->type != tNUM) printf("pPlus must take number.\n");
+    else result += *getCarAsInt(T);
   }
   return newNUM(result , NIL);
 }
@@ -364,26 +358,21 @@ static SExpr *pPlus (Env **_env , SExpr *_expr)
 static SExpr *pMinus (Env **_env , SExpr *_expr)
 {
   int result;
-  switch(lengthOfList(_expr)){
-  case 0:
+  int l = lengthOfList(_expr);
+  if (l == 0)
     result = 0;
-    break;
-  case 1:{
-    SExpr *T = eval(_expr , _env);
-    result = -(*getCarAsInt(T));
-    break;
-  }
-  default:{
+  
+  else if (l == 1) {
+    SExpr *r = eval(_expr , _env);
+    result = -(*getCarAsInt(r));
+
+  }else{
     result = *getCarAsInt(_expr);
     for (SExpr *p = getCdrAsCons(_expr) ; p != NIL ; p = p->cdr){
-      SExpr *T = eval(p , _env);
-      if (T->type != tNUM){
-        printf("pMinus must take number.\n");
-      }else{
-        result -= *getCarAsInt(T);
-      }
+      SExpr *r = eval(p , _env);
+      if (r->type != tNUM) printf("pMinus must take number.\n");
+      else result -= *getCarAsInt(r);
     }
-  }
   }
   return newNUM(result , NIL);
 }
