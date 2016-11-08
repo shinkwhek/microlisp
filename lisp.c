@@ -176,14 +176,10 @@ static int checkSymPrmFun (char *_str , Env *_env)
 {
   for (Env *p = _env ; p != END ; p = p->next){
     if (strcmp( _str , getCarAsString(p->head) ) == 0){
-      switch(p->type){
-      case tPRM:
-        return tPRM;
-      case tSYM:
-        return tSYM;
-      case tFUN:
-        return tFUN;
-      }
+      int _type = p->type;
+      if      (_type == tPRM) return tPRM;
+      else if (_type == tSYM) return tSYM;
+      else if (_type == tFUN) return tFUN;
     }
   }
   return tSYM;
@@ -203,32 +199,22 @@ static SExpr *parse (char *str , Env *_env)
       r = cons( parse(&str[i+1] , _env), r);
       i = i + waitBrackets(&str[i+1]);
     /* ---- ---- ---- End Cons ---- ---- ---- */
-    }else if ( str[i] == ')'){
-      return nReverse(r);
+    }else if ( str[i] == ')') return nReverse(r);
     /* ---- ---- ---- S-Expr of Number ---- ---- ---- */
-    }else if ( isdigit(str[i])){
+    else if ( isdigit(str[i])){
       r = newNUM( readChar2Int(&str[i]), r);
-      while( str[i] != ' ' && str[i] != ')' && str[i]){i++;}
-      if (str[i] == ')'){break;}
+      while( str[i] != ' ' && str[i] != ')' && str[i]) i++;
+      if (str[i] == ')') break;
     /* ---- ---- ---- S-Expr of Symbol | Function | Primitive ---- ---- ---- */
     }else if (isalpha(str[i]) || strchr(symbol_chars , str[i])){
       char *Token = readCharToken(&str[i]);
-      switch( checkSymPrmFun(Token , _env) ){
-      case tSYM:
-        r = newSPF(Token , r , tSYM);
-        break;
-      case tPRM:
-        r = newSPF(Token , r , tPRM);
-        break;
-      case tFUN:
-        r = newSPF(Token , r , tFUN);
-        break;
-      default:
-        printf("env type error.\n");
-        break;
-      }
-      while(str[i] != ' ' && str[i] != ')' && str[i]){i++;}
-      if (str[i] == ')'){break;}
+      int _t = checkSymPrmFun(Token , _env);
+      if      (_t == tSYM) r = newSPF(Token , r , tSYM);
+      else if (_t == tPRM) r = newSPF(Token , r , tPRM);
+      else if (_t == tFUN) r = newSPF(Token , r , tFUN);
+      else                 printf("env type error.\n");
+      while(str[i] != ' ' && str[i] != ')' && str[i]) i++;
+      if (str[i] == ')') break;
     /* ---- ---- ---- ---- ---- ---- ---- */
     }else{
       break;
