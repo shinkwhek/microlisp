@@ -20,7 +20,7 @@
 DEVICE     = atmega328p
 CLOCK      =  16000000
 PROGRAMMER = -c avrisp2 -P usb
-OBJECTS    = main.o lisp.o
+OBJECTS    = lcd.o  lisp.o
 FUSES      =  -U lfuse:w:0xff:m -U hfuse:w:0xda:m -U efuse:w:0xfd:m
 
 # ATMega8 fuse bits used above (fuse bits for other devices are different!):

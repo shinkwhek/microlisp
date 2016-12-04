@@ -6,10 +6,11 @@
    License : read LICENSE
  **** **** **** **** **** **** **** **** ****/
 
-#include <stdio.h>
+//#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include "lcd.h"
 
 /**** **** **** **** **** **** **** **** ****
                TYPES
@@ -115,13 +116,9 @@ static int readChar2Int (char *_str)
 {
   int i   = 0;
   int out = 0;
-  if ( _str[0] == '0' && _str[1] == 'b' ){
-    i = 3;
-  }else{
-    while(0 <= (_str[i]-'0') && (_str[i]-'0') <= 9){
-      out = out*10 + (_str[i]-'0');
-      ++i;
-    }
+  while(0 <= (_str[i]-'0') && (_str[i]-'0') <= 9){
+    out = out*10 + (_str[i]-'0');
+    ++i;
   }
   return out;
 }
@@ -138,7 +135,8 @@ static char *readCharToken (char *_str)
 static int lengthOfList (SExpr *_expr)
 {
   int len = 0;
-  for (SExpr *r = _expr ; r != NIL && r != NULL ; r = r->cdr) {
+  SExpr *r;
+  for (r = _expr  ; r != NIL && r != NULL ; r = r->cdr) {
     ++len;
   }
   return len;
@@ -174,7 +172,8 @@ static int waitBrackets (char *str)
 
 static int checkSymPrmFun (char *_str , Env *_env)
 {
-  for (Env *p = _env ; p != END ; p = p->next){
+  Env *p;
+  for (p = _env ; p != END ; p = p->next){
     if (strcmp( _str , getCarAsString(p->head) ) == 0){
       int _type = p->type;
       if      (_type == tPRM) return tPRM;
@@ -212,7 +211,7 @@ static SExpr *parse (char *str , Env *_env)
       if      (_t == tSYM) r = newSPF(Token , r , tSYM);
       else if (_t == tPRM) r = newSPF(Token , r , tPRM);
       else if (_t == tFUN) r = newSPF(Token , r , tFUN);
-      else                 printf("env type error.\n");
+      else                 lcd_str("env type error.");
       while(str[i] != ' ' && str[i] != ')' && str[i]) i++;
       if (str[i] == ')') break;
     /* ---- ---- ---- ---- ---- ---- ---- */
@@ -242,7 +241,8 @@ static void addVAR (char *_vname , SExpr *_val , Env **_root , int _typename)
 static Env* addListVAR (SExpr *_vnameList , SExpr *_valList , Env **_root)
 {
   Env *_new = *_root;
-  for (SExpr *vnameList = _vnameList, *valList = _valList; vnameList != NIL; vnameList = vnameList->cdr, valList = valList->cdr) {
+  SExpr *vnameList , *valList;
+  for (vnameList = _vnameList, valList = _valList; vnameList != NIL; vnameList = vnameList->cdr, valList = valList->cdr) {
     Env *tmp = alloe(tSYM);
     tmp->head = newSPF(getCarAsString(vnameList) , eval(valList , &_new) , tSYM);
     tmp->next = _new;
@@ -258,10 +258,11 @@ static Env* addListVAR (SExpr *_vnameList , SExpr *_valList , Env **_root)
 
 static SExpr *findSPF (Env *_env , char *_name , int _typename)
 {
-  for (Env *e = _env ; e != END ; e = e->next)
+  Env *e;
+  for (e = _env ; e != END ; e = e->next)
     if (e->type == _typename && strcmp(getCarAsString(e->head) , _name) == 0)
       return getCdrAsCons(e->head);
-  printf("dont find spf.");
+  lcd_str("dont find spf.");
   return NIL;
 }
 
@@ -269,11 +270,11 @@ static SExpr *apply (SExpr *_expr , SExpr *_args , Env **_env)
 {
   switch(_expr->type){
   case tPRM:{
-    for (Env *e = *_env ; e != END ; e = e->next)
+    Env *e;
+    for (e = *_env ; e != END ; e = e->next)
       if (e->type == tPRM && strcmp(getCarAsString(e->head),getCarAsString(_expr)) == 0)
         return e->fn(_env , _args);
-    
-    printf("Don't find in Env.\n");
+    lcd_str("Don't find in Env.");
     return NIL;
   }
   case tFUN:{
@@ -323,7 +324,7 @@ static void defPRM (char *fnName , primFUN *_fn , Env **_root)
 // ('expr)
 static SExpr *pQUOTE (Env **_env , SExpr *_expr)
 {
-  if (lengthOfList(_expr) != 1) printf("QUOTE is must 1 S-Expr.\n");
+  if (lengthOfList(_expr) != 1) lcd_str("Q is must 1 S-Expr.");
   return _expr;
 }
 
@@ -331,10 +332,12 @@ static SExpr *pQUOTE (Env **_env , SExpr *_expr)
 static SExpr *pPlus (Env **_env , SExpr *_expr)
 {
   int result = 0;
-  for (SExpr *p = _expr ; p != NIL ; p = p->cdr){
+  SExpr *p;
+  for (p = _expr ; p != NIL ; p = p->cdr){
     SExpr *T = eval(p , _env);
-    if (T->type != tNUM) printf("pPlus must take number.\n");
-    else                 result += *getCarAsInt(T);
+    //if (T->type != tNUM) //printf("pPlus must take number.\n");
+    //else
+    if (T->type == tNUM) result += *getCarAsInt(T);
   }
   return newNUM(result , NIL);
 }
@@ -352,9 +355,10 @@ static SExpr *pMinus (Env **_env , SExpr *_expr)
 
   }else{
     result = *getCarAsInt(_expr);
-    for (SExpr *p = getCdrAsCons(_expr) ; p != NIL ; p = p->cdr){
+    SExpr *p;
+    for (p = getCdrAsCons(_expr) ; p != NIL ; p = p->cdr){
       SExpr *r = eval(p , _env);
-      if (r->type != tNUM) printf("pMinus must take number.\n");
+      if (r->type != tNUM) lcd_str("Minus must take num.");
       else                 result -= *getCarAsInt(r);
     }
   }
@@ -364,10 +368,11 @@ static SExpr *pMinus (Env **_env , SExpr *_expr)
 static SExpr *pMultiplied (Env **_env , SExpr *_expr)
 {
   int result = 1;
-  for (SExpr *p = _expr ; p != NIL ; p = p->cdr){
+  SExpr *p;
+  for (p = _expr ; p != NIL ; p = p->cdr){
     SExpr *T = eval(p , _env);
-    if (T->type != tNUM) printf("pMultiplied must take number.\n");
-    else                 result *= *getCarAsInt(T);
+    if (T->type != tNUM) lcd_str("Mult must take num.");
+    else result *= *getCarAsInt(T);
   }
   return newNUM(result , NIL);
 }
@@ -375,11 +380,12 @@ static SExpr *pMultiplied (Env **_env , SExpr *_expr)
 static SExpr *pDivided (Env **_env , SExpr *_expr)
 {
   int result = *getCarAsInt(_expr);
-  for (SExpr *p = getCdrAsCons(_expr) ; p != NIL ; p = p->cdr){
+  SExpr *p;
+  for (p = getCdrAsCons(_expr) ; p != NIL ; p = p->cdr){
     SExpr *T = eval(p , _env);
-    if      (T->type != tNUM)      printf("pDivided must take number.\n");
-    else if (*getCarAsInt(T) == 0) printf("Cannot divided by zero.\n");
-    else                           result /= *getCarAsInt(T);
+    if      (T->type != tNUM)      lcd_str("Divid must take num");
+    else if (*getCarAsInt(T) == 0) lcd_str("not divided by zero.");
+    else  result /= *getCarAsInt(T);
   }
   return newNUM(result , NIL);
 }
@@ -390,7 +396,7 @@ static SExpr *pGreater (Env **_env , SExpr *_expr)
   SExpr *B = eval(getCdrAsCons(_expr) , _env);
   if      (*getCarAsInt(A) > *getCarAsInt(B))      return TRUE;
   else if ( !(*getCarAsInt(A) > *getCarAsInt(B)) ) return FALSE;
-  else                                             printf("pGreater error.\n");
+  else                                             lcd_str("pGreater error.");
   return NIL;
 }
 // (< A B)
@@ -400,7 +406,7 @@ static SExpr *pLess (Env **_env , SExpr *_expr)
   SExpr *B = eval(getCdrAsCons(_expr) , _env);
   if      (*getCarAsInt(A) < *getCarAsInt(B))      return TRUE;
   else if ( !(*getCarAsInt(A) < *getCarAsInt(B)) ) return FALSE;
-  else                                             printf("pLess error.\n");
+  else                                             lcd_str("pLess error.");
   return NIL;
 }
 // (= A B)
@@ -410,7 +416,7 @@ static SExpr *pEqual (Env **_env , SExpr *_expr)
   SExpr *B = eval(getCdrAsCons(_expr) , _env);
   if      (*getCarAsInt(A) == *getCarAsInt(B))      return TRUE;
   else if ( !(*getCarAsInt(A) == *getCarAsInt(B)) ) return FALSE;
-  else                                              printf("pEqual error.\n");
+  else                                              lcd_str("pEqual error.");
   return NIL;
 }
 // (if (TRUE | FALSE) A B)
@@ -419,7 +425,7 @@ static SExpr *pIf (Env **_env , SExpr *_expr)
   SExpr *P = eval(_expr , _env); // TRUE | FALSE
   if      (P == TRUE)  return eval(getCdrAsCons(_expr) , _env);
   else if (P == FALSE) return eval(getCdrAsCons(getCdrAsCons(_expr)) , _env);
-  else                 printf("pIf error.\n");
+  else                 lcd_str("pIf error.");
   return NIL;
 }
 // (cons A B) -> (A . B)
@@ -447,7 +453,7 @@ static SExpr *pDefine (Env **_env , SExpr *_expr)
   char *vname  = getCarAsString(_expr);
   SExpr *body  = getCdrAsCons(_expr);
   addVAR(vname , body , _env , tSYM);
-  //printf("def : %s.\n",vname);
+  lcd_str("defed.");
   return body;
 }
 // (lambda (x ..) expr ..)
@@ -459,12 +465,13 @@ static SExpr *pLambda (Env **_env , SExpr *_expr)
   return _new;
 }
 // (q) -- quit
+/*
 static SExpr *pQuit (Env **_env , SExpr *_expr)
 {
-    printf("\nGood bye. :D\n");
+  printf("\nGood bye. :D\n");
     exit(1);
 }
-
+*/
 static void setPRIMITIVE (Env **_env)
 {
   defPRM("quo"   , pQUOTE      , _env);
@@ -479,7 +486,7 @@ static void setPRIMITIVE (Env **_env)
   defPRM("cons"  , pCons       , _env);
   defPRM("car"   , pCar        , _env);
   defPRM("cdr"   , pCdr        , _env);
-  defPRM("q"     , pQuit       , _env);
+  //defPRM("q"     , pQuit       , _env);
   defPRM("def"   , pDefine     , _env);
   defPRM("\\"    , pLambda     , _env);
  }
@@ -489,29 +496,30 @@ static void setPRIMITIVE (Env **_env)
 static void print (SExpr *_expr)
 {
   if (_expr == NIL){
-    printf("<NIL>");
+    lcd_str("<NIL>");
   }else{
     switch (_expr->type){
     case tNUM:
-      printf("<NUMBER> = %d." , *getCarAsInt(_expr));
+      //
+      lcd_str("<N> = %d." , *getCarAsInt(_expr));
       return;
     case tSYM:
-      printf("<SYMBOL>.");
+      lcd_str("<S>.");
       return;
     case tPRM:
-      printf("<PRIMITIVE>.");
+      lcd_str("<P>.");
       return;
     case tFUN:
-      printf("<FUNCTION>.");
+      lcd_str("<F>.");
       return;
     case tCONS:
-      printf("<CONS>.");
+      lcd_str("<C>.");
       return;
     default:{
       if (_expr == TRUE){
-        printf("<BOOL> = True.");
+        lcd_str("<B> = T.");
       }else if (_expr == FALSE){
-        printf("<BOOL> = False.");
+        lcd_str("<B> = F.");
       }
     }
     }
@@ -522,6 +530,7 @@ static void print (SExpr *_expr)
  **** **** **** **** **** **** **** **** ****/
 int main (void)
 {
+  lcd_init();
 
   NIL   = malloc(sizeof(void *));
   TRUE  = malloc(sizeof(void *));
@@ -535,23 +544,29 @@ int main (void)
 
   setPRIMITIVE(&env);
 
-  char str[255];
+  char str[20];
   
-  while(1){
+  // while(1){
 
-    for (int i = 0; i < 255; i++)
+  int i;
+    for (i = 0; i < 20; i++)
       str[i] = '\0';
 
-    printf("> ");
-    fgets(str,255,stdin);
+    str = "(+ 1 2 3)";
+    
+    lcd_pos(1,1);
+    lcd_str("> ");
+    lcd_str(str);
+    //fgets(str,255,stdin);
 
     SExpr *root = parse(str , env);
-    
-    printf("; ");
-    print( eval(root , &env) );
-    printf("\n");
-  }
 
+    lcd_pos(3,1);
+    print( eval(root , &env) );
+    // }
+
+    while(1);
+    
   free(NIL);
   free(TRUE);
   free(FALSE);
