@@ -552,7 +552,7 @@ int main (void)
     for (i = 0; i < 20; i++)
       str[i] = '\0';
 
-    str = "(+ 1 2 3)";
+    strcpy(str,"(+ 1 2 3)");
     
     lcd_pos(1,1);
     lcd_str("> ");
