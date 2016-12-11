@@ -1,4 +1,6 @@
 
+/* To control LCD By http://www.nicovideo.jp/watch/sm15586503 */
+
 void lcd_init (void);
 void lcd_out (char, char);
 void lcd_cmd (char);
