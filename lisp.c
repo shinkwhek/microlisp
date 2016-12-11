@@ -6,7 +6,7 @@
    License : read LICENSE
  **** **** **** **** **** **** **** **** ****/
 
-//#include <stdio.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
@@ -474,7 +474,7 @@ static SExpr *pQuit (Env **_env , SExpr *_expr)
 */
 static void setPRIMITIVE (Env **_env)
 {
-  defPRM("quo"   , pQUOTE      , _env);
+  defPRM("q"   , pQUOTE      , _env);
   defPRM("-"     , pMinus      , _env);
   defPRM("*"     , pMultiplied , _env);
   defPRM("+"     , pPlus       , _env);
@@ -483,11 +483,11 @@ static void setPRIMITIVE (Env **_env)
   defPRM("<"     , pLess       , _env);
   defPRM("="     , pEqual      , _env);
   defPRM("if"    , pIf         , _env);
-  defPRM("cons"  , pCons       , _env);
-  defPRM("car"   , pCar        , _env);
-  defPRM("cdr"   , pCdr        , _env);
+  defPRM("cs"  , pCons       , _env);
+  defPRM("ca"   , pCar        , _env);
+  defPRM("cd"   , pCdr        , _env);
   //defPRM("q"     , pQuit       , _env);
-  defPRM("def"   , pDefine     , _env);
+  defPRM("df"   , pDefine     , _env);
   defPRM("\\"    , pLambda     , _env);
  }
 /**** **** **** **** **** **** **** **** ****
@@ -499,10 +499,13 @@ static void print (SExpr *_expr)
     lcd_str("<NIL>");
   }else{
     switch (_expr->type){
-    case tNUM:
-      //
-      lcd_str("<N> = %d." , *getCarAsInt(_expr));
-      return;
+    case tNUM:{
+      char s[3];
+      sprintf(s,"%d",*getCarAsInt(_expr));
+      lcd_str("<N>=");
+      lcd_str(s);
+      break;
+    }
     case tSYM:
       lcd_str("<S>.");
       return;

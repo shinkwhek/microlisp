@@ -76,7 +76,7 @@ void lcd_init (void){
   lcd_cmd(0x01);
   
 }
-
+/*
 int main (void) {
 
   lcd_init();
@@ -93,3 +93,4 @@ int main (void) {
   }
   return 0;
 }
+*/
