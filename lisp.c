@@ -11,6 +11,8 @@
 #include <string.h>
 #include <ctype.h>
 #include "lcd.h"
+#include <avr/io.h>
+#include <util/delay.h>
 
 /**** **** **** **** **** **** **** **** ****
                TYPES
@@ -482,12 +484,12 @@ static void setPRIMITIVE (Env **_env)
   defPRM(">"     , pGreater    , _env);
   defPRM("<"     , pLess       , _env);
   defPRM("="     , pEqual      , _env);
-  defPRM("if"    , pIf         , _env);
-  defPRM("cs"  , pCons       , _env);
-  defPRM("ca"   , pCar        , _env);
-  defPRM("cd"   , pCdr        , _env);
+  defPRM("i"    , pIf         , _env);
+  defPRM("s"  , pCons       , _env);
+  defPRM("a"   , pCar        , _env);
+  defPRM("d"   , pCdr        , _env);
   //defPRM("q"     , pQuit       , _env);
-  defPRM("df"   , pDefine     , _env);
+  defPRM("f"   , pDefine     , _env);
   defPRM("\\"    , pLambda     , _env);
  }
 /**** **** **** **** **** **** **** **** ****
@@ -533,8 +535,10 @@ static void print (SExpr *_expr)
  **** **** **** **** **** **** **** **** ****/
 int main (void)
 {
+  DDRB  = 0b00000000;
+  PORTB = 0b11111111;
   lcd_init();
-
+  
   NIL   = malloc(sizeof(void *));
   TRUE  = malloc(sizeof(void *));
   FALSE = malloc(sizeof(void *));
@@ -550,26 +554,103 @@ int main (void)
   char str[20];
   
   // while(1){
-
+  
+  //strcpy(str,"1");
+  
+  lcd_pos(1,1);
+  lcd_str("> ");
+  //lcd_str(str);
+  //fgets(str,255,stdin);
+  /*
+  SExpr *root = parse(str , env);
+  
+  lcd_pos(3,1);
+  print( eval(root , &env) );
+  */
+  // }
+  
   int i;
-    for (i = 0; i < 20; i++)
-      str[i] = '\0';
+  for (i = 0; i < 20; i++)
+    str[i] = '\0';
 
-    strcpy(str,"(+ 1 2 3)");
+  //lcd_clear();
+  
+  i = 0;
+  int j = 0;
+  while(1){
+
+    /*---- ---- count ---- ----*/
+    if (bit_is_clear(PINB,PB1)){
+      j++;
+      while(bit_is_clear(PINB,PB1));
+      _delay_ms(0.5);
+      
+    }
+    /*---- ---- number ---- ----*/
+    else if (bit_is_clear(PINB,PB2)){
+      str[i] = '0' + j;
+      lcd_data(str[i]);
+      i++;
+      j=0;
+      while(bit_is_clear(PINB,PB2));
+      _delay_ms(0.5);
+    }
+    /*---- ---- symbol ---- ----*/
+    else if (bit_is_clear(PINB,PB3)){
+      switch(j){
+      case 0:{str[i] = ' ';break;}
+      case 1:{str[i] = '(';break;}
+      case 2:{str[i] = ')';break;}
+      case 3:{str[i] = 'q';break;}
+      case 4:{str[i] = '-';break;}
+      case 5:{str[i] = '*';break;}
+      case 6:{str[i] = '+';break;}
+      case 7:{str[i] = '/';break;}
+      case 8:{str[i] = '>';break;}
+      case 9:{str[i] = '<';break;}
+      case 10:{str[i] = '=';break;}
+      case 11:{str[i] = 'i';break;}
+      case 12:{str[i] = 's';break;}
+      case 13:{str[i] = 'a';break;}
+      case 14:{str[i] = 'd';break;}
+      case 15:{str[i] = 'f';break;}
+      case 16:{str[i] = '\\';break;}
+      default:break;
+      }
+      lcd_data(str[i]);
+      i++;
+      j=0;
+
+      while(bit_is_clear(PINB,PB3));
+      _delay_ms(0.5);
+    }
+    /*---- ---- action ---- ----*/
+    else if (bit_is_clear(PINB,PB4)){
+      //lcd_str(str);
+      i=0;
+      j=0;
+      while(bit_is_clear(PINB,PB4));
+      _delay_ms(0.5);
+      SExpr *root = parse(str , env);
+  
+      lcd_pos(3,1);
+      print( eval(root , &env) );
+      int k;
+      for (k = 0; k < 20; k++)
+        str[k] = '\0';
+    }
+    else if (bit_is_clear(PINB,PB5)){
+
+      lcd_clear();
+      lcd_pos(1,1);
+      lcd_data('>');
+      while(bit_is_clear(PINB,PB5));
+      _delay_ms(0.5);
+    }
     
-    lcd_pos(1,1);
-    lcd_str("> ");
-    lcd_str(str);
-    //fgets(str,255,stdin);
 
-    SExpr *root = parse(str , env);
-
-    lcd_pos(3,1);
-    print( eval(root , &env) );
-    // }
-
-    while(1);
-    
+  }
+  
   free(NIL);
   free(TRUE);
   free(FALSE);
