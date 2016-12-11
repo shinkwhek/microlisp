@@ -12,52 +12,52 @@ This is a Lisp interpreter, which is so small, on AVR micro computer.
 
 ```lisp
 > 1
-; <NUMBER> = 1.
+; <N> = 1.
 
 > +
-; <PRIMITIVE>.
+; <P>.
 
 > (+ 1 3 (/ 4 2) (* 7 (- 9 5)))
-; <NUMBER> = 34.
+; <NR> = 34.
 
 > (car (1 2))
-; <NUMBER> = 1.
+; <N> = 1.
 
-> (cdr (1 2))
-; <NUMBER> = 2.
+> (d (1 2))
+; <N> = 2.
 
-> (cons 1 2)
+> (s 1 2)
 ; (<SEXPR> . <SEXPR>).
 
 > (> 1 2)
-; <BOOL> = False.
+; <B> = F.
 
 > (= 1 1)
-; <BOOL> = True.
+; <B> = T.
 
-> (if (< 1 2) (+ 1 1) (- 1 1))
-; <NUMBER> = 2.
+> (i (< 1 2) (+ 1 1) (- 1 1))
+; <N> = 2.
 
-> (define x 1)
-; <NUMBER> = 1.
+> (f x 1)
+; <N> = 1.
 
 > x
-; <NUMBER> = 1.
+; <N> = 1.
 
-> (define plus +)
-; <PRIMITIVE>.
+> (f ps +)
+; <P>.
 
-> (plus x x)
-; <NUMBER> = 2.
+> (ps x x)
+; <N> = 2.
 
-> ((lambda (x) (+ x x)) 3)
-; <NUMBER> = 6.
+> ((\ (x) (+ x x)) 3)
+; <N> = 6.
 
-> (define f (lambda (x y) (* x y)))
-; <CONS>.
+> (f a (\ (x y) (* x y)))
+; <C>.
 
-> (f 3 4)
-; <NUMBER> = 12.
+> (a 3 4)
+; <N> = 12.
 ```
 
 ...
@@ -67,11 +67,20 @@ This is a Lisp interpreter, which is so small, on AVR micro computer.
 ```shell
 $ make
 ```
-```shell
-$ ./lisp
-`````
 
 ## Write
+
+Write
+
+```shell
+$ make flash
+```
+
+Clean
+
+```shell
+$ make clean
+```
 
 ## Author
 
