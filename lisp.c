@@ -553,28 +553,13 @@ int main (void)
 
   char str[20];
   
-  // while(1){
-  
-  //strcpy(str,"1");
-  
   lcd_pos(1,1);
   lcd_str("> ");
-  //lcd_str(str);
-  //fgets(str,255,stdin);
-  /*
-  SExpr *root = parse(str , env);
-  
-  lcd_pos(3,1);
-  print( eval(root , &env) );
-  */
-  // }
   
   int i;
   for (i = 0; i < 20; i++)
     str[i] = '\0';
 
-  //lcd_clear();
-  
   i = 0;
   int j = 0;
   while(1){
@@ -626,7 +611,6 @@ int main (void)
     }
     /*---- ---- action ---- ----*/
     else if (bit_is_clear(PINB,PB4)){
-      //lcd_str(str);
       i=0;
       j=0;
       while(bit_is_clear(PINB,PB4));
