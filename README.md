@@ -20,7 +20,7 @@ This is a Lisp interpreter, which is so small, on AVR micro computer.
 > (+ 1 3 (/ 4 2) (* 7 (- 9 5)))
 ; <NR> = 34.
 
-> (car (1 2))
+> (a (1 2))
 ; <N> = 1.
 
 > (d (1 2))
