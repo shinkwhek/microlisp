@@ -1,10 +1,12 @@
 #include<stdio.h>
 #include<stdlib.h>
 #include<ctype.h>
+#include<string.h>
 
 FILE * fp;
 int c;
 
+/* ==== ==== ==== type ==== ==== ==== */
 enum {
   TNIL = 0,
   TTRUE,
@@ -24,23 +26,31 @@ typedef struct cell_s {
   struct cell_s * cdr_;
 } Cell;
 
+static Cell * Nil   = &(Cell){ TNIL,   .int_ = 0 };
+static Cell * TRUE  = &(Cell){ TTRUE,  .int_ = 1 };
+static Cell * FALSE = &(Cell){ TFALSE, .int_ = 0 };
+
+const char symbols[] = "+-*/!?=<>_:\\%#~&";
+/* ==== ==== ==== ==== ==== ==== ==== */
+
+/* ---- ---- make cell ---- ---- */
 static Cell * make_cell (Cell * cell) {
   Cell * r = malloc(1*sizeof(Cell));
   *r = *cell;
   return r;
 }
 
-/* ---- ---- make cell ---- ---- */
 static Cell * cell_cons (Cell * cell) {
   return make_cell(&(Cell){TCONS, .car_ = cell});
 }
 static Cell * cell_int    (int a)    { return make_cell(&(Cell){TINT,    .int_    = a}); }
-static Cell * cell_symbol (char * a) { return make_cell(&(Cell){TSYMBOL, .symbol_ = a}); }
+static Cell * cell_symbol (char * a) {
+  Cell * r = make_cell(&(Cell){TSYMBOL, .int_ = 0});
+  r->symbol_ = malloc(sizeof(char) * (strlen(a) + 1) );
+  strcpy(r->symbol_, a);
+  return r;
+}
 /* ---- ---- ---- ---- ---- ---- */
-
-static Cell * Nil   = &(Cell){ TNIL,   .int_ = 0 };
-static Cell * TRUE  = &(Cell){ TTRUE,  .int_ = 1 };
-static Cell * FALSE = &(Cell){ TFALSE, .int_ = 0 };
 
 /* ---- ---- lex tools ---- ---- */
 static void next (void) {
@@ -51,19 +61,19 @@ static int show_next (void) {
   ungetc(a, fp);
   return a;
 }
-static int get_int (int a) {
+static Cell * read_int (int a) {
   int b = a - '0';
   while (isdigit(show_next())){
 	next();
 	b = b * 10 + (c - '0');
   }
-  return b;
+  return cell_int(b);
 }
 static Cell * read_symbol (char a) {
   char buf[256];
   buf[0] = a;
   int s = 1;
-  while (isalpha(show_next())) {
+  while (isalpha(show_next()) || strchr(symbols, show_next())) {
 	next();
 	buf[s++] = c;
   }
@@ -72,6 +82,7 @@ static Cell * read_symbol (char a) {
   
 }
 
+/* ==== ==== ==== parser ==== ==== ==== */
 static Cell * parse (void) {
   for(;;) {
 	next();
@@ -80,11 +91,11 @@ static Cell * parse (void) {
 	if (c == EOF)
 	  return NULL;
 	if (isdigit(c)) {
-	  Cell * r = cell_int(get_int(c));
+	  Cell * r = read_int(c);
 	  r->cdr_  = parse();
 	  return r;
 	}
-	if (isalpha(c)) {
+	if (isalpha(c) || strchr(symbols,c)) {
 	  Cell * r = read_symbol(c);
 	  r->cdr_  = parse();
 	  return r;
@@ -99,6 +110,7 @@ static Cell * parse (void) {
 	}
   }
 }
+/* ==== ==== ==== ====== ==== ==== ==== */
 
 static void print_cell (Cell * cell) {
   if (cell == NULL)
@@ -108,8 +120,11 @@ static void print_cell (Cell * cell) {
 	if (cell->cdr_ != NULL || cell->cdr_ != Nil)
 	  print_cell(cell->cdr_);
   }
-  else if (cell->type_ == TSYMBOL)
-	printf("%d ", cell->type_);
+  else if (cell->type_ == TSYMBOL) {
+	printf("%s ", cell->symbol_);
+	if (cell->cdr_ != NULL || cell->cdr_ != Nil)
+	  print_cell(cell->cdr_);
+  }
   else if (cell->type_ == TCONS){
 	printf("(");
 	print_cell(cell->car_);
@@ -118,6 +133,7 @@ static void print_cell (Cell * cell) {
   }
 }
 
+/* ==== ==== ==== main loop ==== ==== ==== */
 int main (int argv, char* argc[])
 {
   Cell * E;
