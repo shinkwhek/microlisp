@@ -1,6 +1,6 @@
 
 CC			= cc
-LISP		= tinylisp
+LISP		= lisp
 FLAG		= -W -Wall -O0
 
 FILE		= lisp.c
