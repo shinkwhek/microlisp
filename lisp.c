@@ -60,9 +60,6 @@ static Env* END;
 static void* alloc (int _typeName)
 {
   SExpr* _newSExpr = malloc(sizeof(SExpr));
-  _newSExpr->type = _typeName;
-  _newSExpr->car = NULL;
-  _newSExpr->cdr = NULL;
   return _newSExpr;
 }
 
