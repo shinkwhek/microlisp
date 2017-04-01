@@ -9,6 +9,7 @@ int c;
 /* ==== ==== ==== type ==== ==== ==== */
 enum {
   TNIL = 0,
+  TENV,
   TTRUE,
   TFALSE,
   TSYMBOL,
@@ -16,12 +17,19 @@ enum {
   TINT
 };
 
+struct cell_s;
+
+typedef struct cell_s * (* Prim)(struct cell_s * cell, struct cell_s * env);
+
 typedef struct cell_s {
   int type_;
   union {
+	// data
 	int int_;
 	char * symbol_;
 	struct cell_s * car_;
+	// to env
+	Prim * prim_;
   };
   struct cell_s * cdr_;
 } Cell;
@@ -49,6 +57,12 @@ static Cell * cell_symbol (char * a) {
   r->symbol_ = malloc(sizeof(char) * (strlen(a) + 1) );
   strcpy(r->symbol_, a);
   return r;
+}
+
+static Cell * add_env (Cell * cell, Cell * env) {
+  Cell * new = make_cell(cell);
+  new->cdr_ = env;
+  return new;
 }
 /* ---- ---- ---- ---- ---- ---- */
 
@@ -133,13 +147,18 @@ static void print_cell (Cell * cell) {
   }
 }
 
+/* ==== ==== ==== eval ==== ==== ==== */
+
+/* ==== ==== ==== ==== ==== ==== ==== */
+
 /* ==== ==== ==== main loop ==== ==== ==== */
 int main (int argv, char* argc[])
 {
-  Cell * E;
-  fp = fopen(argc[1], "r");
-  E = parse();
+  Cell * R;
+  Cell * E = Nil;
   
+  fp = fopen(argc[1], "r");
+  R = parse();
   print_cell(E);
 
   return 0;
