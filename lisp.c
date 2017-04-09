@@ -146,6 +146,14 @@ static void print_cell (Cell * cell) {
 	printf(") ");
 	print_cell(cell->cdr_);
   }
+  else if (cell->type_ == TTRUE) {
+	printf("TRUE ");
+	return;
+  }
+  else if (cell->type_ == TFALSE) {
+	printf("FALSE ");
+	return;
+  }
   else if (cell->type_ == TNIL) {
 	printf("nil ");
 	return;
@@ -157,6 +165,12 @@ static inline Cell * plus_eval  (Cell*, Cell*);
 static inline Cell * minus_eval (Cell*, Cell*);
 static inline Cell * time_eval  (Cell*, Cell*);
 static inline Cell * divid_eval (Cell*, Cell*);
+static inline Cell * great_eval (Cell*, Cell*);
+static inline Cell * less_eval  (Cell*, Cell*);
+static inline Cell * equal_eval (Cell*, Cell*);
+static inline Cell * if_eval    (Cell*, Cell*);
+static inline Cell * car_eval   (Cell*);
+static inline Cell * cdr_eval   (Cell*);
 
 static Cell * eval (Cell * cell, Cell * env) {
   Cell * e = cell;
@@ -187,6 +201,30 @@ static Cell * eval (Cell * cell, Cell * env) {
 	if ( strcmp(p,"/") == 0 ) {
 	  printf("'/' symbol\n");
 	  return divid_eval(e->cdr_, env);
+	}
+	if ( strcmp(p,">") == 0 ) {
+	  printf("'>' symbol\n");
+	  return great_eval(e->cdr_, env);
+	}
+	if ( strcmp(p,"<") == 0 ) {
+	  printf("'<' symbol\n");
+	  return less_eval(e->cdr_, env);
+	}
+	if ( strcmp(p,"=") == 0 ) {
+	  printf("'=' symbol\n");
+	  return equal_eval(e->cdr_, env);
+	}
+	if ( strcmp(p,"if") == 0 ) {
+	  printf("'if' symbol\n");
+	  return if_eval(e->cdr_, env);
+	}
+	if ( strcmp(p,"car") == 0 ) {
+	  printf("'car' symbol\n");
+	  return car_eval(e->cdr_);
+	}
+	if ( strcmp(p,"cdr") == 0 ) {
+	  printf("'cdr' symbol\n");
+	  return cdr_eval(e->cdr_);
 	}
   }
    
@@ -252,6 +290,58 @@ static inline Cell * divid_eval (Cell * cell, Cell * env) {
 	  printf("arg isnot 'TINT' for '/' symbols\n");
   }
   return cell_int(result);
+}
+static inline Cell * great_eval (Cell * cell, Cell * env) {
+  Cell * L = eval(cell,       env);
+  Cell * R = eval(cell->cdr_, env);
+  if (L->type_ == TINT) {
+	if (L->int_ > R->int_)
+	  return TRUE;
+	else
+	  return FALSE;
+  }
+  printf("greater error\n");
+  return Nil;
+}
+static inline Cell * less_eval (Cell * cell, Cell * env) {
+  Cell * L = eval(cell,       env);
+  Cell * R = eval(cell->cdr_, env);
+  if (L->type_ == TINT) {
+	if (L->int_ < R->int_)
+	  return TRUE;
+	else
+	  return FALSE;
+  }
+  printf("less error\n");
+  return Nil;
+}
+static inline Cell * equal_eval (Cell * cell, Cell * env) {
+  Cell * L = eval(cell,       env);
+  Cell * R = eval(cell->cdr_, env);
+  if (L->type_ == TINT) {
+	if (L->int_ == R->int_)
+	  return TRUE;
+	else
+	  return FALSE;
+  }
+  printf("equal error\n");
+  return Nil;
+}
+static inline Cell * if_eval (Cell * cell, Cell * env) {
+  Cell * p = eval(cell,env);
+  if (p == TRUE)
+	return eval (cell->cdr_, env);
+  if (p == FALSE)
+	return eval (cell->cdr_->cdr_, env);
+
+  printf("if error\n");
+  return Nil;
+}
+static inline Cell * car_eval (Cell * cell) {
+  return cell->car_;
+}
+static inline Cell * cdr_eval (Cell * cell) {
+  return cell->car_->cdr_;
 }
 
 /* ==== ==== ==== ==== ==== ==== ==== */
