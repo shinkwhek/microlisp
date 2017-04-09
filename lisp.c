@@ -2,6 +2,7 @@
 #include<stdlib.h>
 #include<ctype.h>
 #include<string.h>
+#include<time.h>
 
 FILE * fp;
 int c;
@@ -103,7 +104,7 @@ static Cell * parse (void) {
 	if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
 	  continue;
 	if (c == EOF)
-	  return NULL;
+	  return Nil;
 	if (isdigit(c)) {
 	  Cell * r = read_int(c);
 	  r->cdr_  = parse();
@@ -145,21 +146,131 @@ static void print_cell (Cell * cell) {
 	printf(") ");
 	print_cell(cell->cdr_);
   }
+  else if (cell->type_ == TNIL) {
+	printf("nil ");
+	return;
+  }
 }
 
 /* ==== ==== ==== eval ==== ==== ==== */
+static inline Cell * plus_eval  (Cell*, Cell*);
+static inline Cell * minus_eval (Cell*, Cell*);
+static inline Cell * time_eval  (Cell*, Cell*);
+static inline Cell * divid_eval (Cell*, Cell*);
+
+static Cell * eval (Cell * cell, Cell * env) {
+  Cell * e = cell;
+  int etype = e->type_;
+  switch(etype){
+  case TNIL: case TTRUE: case TFALSE:
+  case TINT:
+	printf("simple\n");
+	return e;
+  case TCONS:{
+	printf("cons\n");
+	return eval(e->car_, env);
+  }
+  case TSYMBOL:{
+	char * p = e->symbol_;
+	if ( strcmp(p,"+") == 0 ) {
+	  printf("'+' symbol\n");
+	  return plus_eval(e->cdr_, env);
+	}
+	if ( strcmp(p,"-") == 0 ) {
+	  printf("'-' symbol\n");
+	  return minus_eval(e->cdr_, env);
+	}
+	if ( strcmp(p,"*") == 0 ) {
+	  printf("'*' symbol\n");
+	  return time_eval(e->cdr_, env);
+	}
+	if ( strcmp(p,"/") == 0 ) {
+	  printf("'/' symbol\n");
+	  return divid_eval(e->cdr_, env);
+	}
+  }
+   
+  }
+  return Nil;
+}
+
+static inline Cell * plus_eval (Cell * cell, Cell * env) {
+  int result = 0;
+  Cell * p;
+  for (p = cell; p != Nil; p = p->cdr_) {
+	Cell * T = eval(p, env);
+	if (T->type_ == TINT)
+	  result += T->int_;
+	else
+	  printf("arg isnot 'TINT' for '+' symbols\n");
+  }
+  return cell_int(result);
+}
+static inline Cell * minus_eval (Cell * cell, Cell * env) {
+  Cell * p = eval(cell,env);
+  int result = p->int_;
+  for (p = cell->cdr_; p != Nil; p = p->cdr_) {
+	Cell * T = eval(p, env);
+	if (T->type_ == TINT){
+	  result -= T->int_;
+	}
+	else
+	  printf("arg isnot 'TINT' for '-' symbols\n");
+  }
+  return cell_int(result);
+}
+static inline Cell * time_eval (Cell * cell, Cell * env) {
+  int result = 1;
+  Cell * p;
+  for (p = cell; p != Nil; p = p->cdr_) {
+	Cell * T = eval(p, env);
+	if (T->type_ == TINT){
+	  if (T->int_)
+		result *= T->int_;
+	  else
+		return cell_int(0);
+	}
+	else
+	  printf("arg isnot 'TINT' for '*' symbols\n");
+  }
+  return cell_int(result);
+}
+static inline Cell * divid_eval (Cell * cell, Cell * env) {
+  Cell * p = eval(cell,env);
+  int result = p->int_;
+  for (p = cell->cdr_; p != Nil; p = p->cdr_){
+	Cell * T = eval(p,env);
+	if (T->type_ == TINT) {
+	  if (T->int_)
+		result /= T->int_;
+	  else{
+		printf("divided not have 0\n");
+		return cell_int(0);
+	  }
+	}
+	else
+	  printf("arg isnot 'TINT' for '/' symbols\n");
+  }
+  return cell_int(result);
+}
 
 /* ==== ==== ==== ==== ==== ==== ==== */
 
 /* ==== ==== ==== main loop ==== ==== ==== */
 int main (int argv, char* argc[])
 {
+  clock_t start , end;
+  
   Cell * R;
   Cell * E = Nil;
-  
   fp = fopen(argc[1], "r");
+
+  start = clock();
   R = parse();
-  print_cell(E);
+  end = clock();
+  printf( "処理時間:%lu[ms]\n", end - start );
+  
+  print_cell(eval(R,E));
 
   return 0;
 }
