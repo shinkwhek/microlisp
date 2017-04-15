@@ -119,51 +119,6 @@ static Cell * parse (void) {
 }
 /* ==== ==== ==== ====== ==== ==== ==== */
 
-static void print_cell (Cell * cell) {
-  if (cell == NULL)
-	return;
-  if (cell->type_ == TINT) {
-	printf("%d ", cell->int_);
-	if (cell->cdr_ != NULL || cell->cdr_ != Nil)
-	  print_cell(cell->cdr_);
-  }
-  else if (cell->type_ == TSYMBOL) {
-	printf("%s ", cell->symbol_);
-	if (cell->cdr_ != NULL || cell->cdr_ != Nil)
-	  print_cell(cell->cdr_);
-  }
-  else if (cell->type_ == TCONS){
-	printf("(");
-	print_cell(cell->car_);
-	printf(") ");
-	print_cell(cell->cdr_);
-  }
-  else if (cell->type_ == TFUN) {
-	printf("(");
-	print_cell(cell->car_);
-	printf(")");
-	print_cell(cell->cdr_);
-  }
-  else if (cell->type_ == TTRUE) {
-	printf("TRUE ");
-	return;
-  }
-  else if (cell->type_ == TFALSE) {
-	printf("FALSE ");
-	return;
-  }
-  else if (cell->type_ == TNIL) {
-	printf("nil ");
-	return;
-  }
-  else if (cell->type_ == TENV) {
-	printf("env: ");
-	print_cell(cell->car_);
-	printf("\n");
-	print_cell(cell->cdr_);
-  }
-}
-
 /* ==== ==== ==== eval ==== ==== ==== */
 static inline Cell * plus_eval   (Cell*, Cell**);
 static inline Cell * minus_eval  (Cell*, Cell**);
@@ -229,10 +184,6 @@ static Cell * find_symbol (Cell * cell, Cell ** env) {
 }
 
 static Cell * eval (Cell * cell, Cell ** env) {
-  print_cell(cell);
-  printf("\n[env]: ");
-  print_cell(*env);
-  printf("\n");
   switch(cell->type_){
   case TNIL: case TTRUE: case TFALSE: case TINT: case TFUN:
 	return cell;
@@ -376,12 +327,10 @@ static void print (Cell * cell) {
 	printf("TSYMBOL(%s)",cell->symbol_);
 	break;
   case TCONS:
-	printf("TCONS: ");
-	print_cell(cell);
+	printf("TCONS: %s",cell->car_->symbol_);
 	break;
   case TFUN:
-	printf("TFUN: ");
-	print_cell(cell);
+	printf("TFUN");
 	break;
   default:
 	printf("nothing");
