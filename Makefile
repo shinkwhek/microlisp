@@ -1,13 +1,13 @@
 
-CC			= cc
-LISP		= lisp
-FLAG		= -W -Wall -O0
+CC	= cc
+LISP	= lisp
+FLAG	= -W -Wall -O0
 
-FILE		= lisp.c
+FILE	= lisp.c
 
-BIN 		= bin
+BIN 	= bin
 
-RM			= rm
+RM	= rm
 
 all: $(BIN)/$(LISP)
 
