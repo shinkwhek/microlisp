@@ -1,642 +1,356 @@
-/**** **** **** **** **** **** **** **** ****
-   Lisp on AVR
+#include<stdio.h>
+#include<stdlib.h>
+#include<ctype.h>
+#include<string.h>
 
-   Author : Shin KAWAHARA
+FILE * fp;
+int c;
 
-   License : read LICENSE
- **** **** **** **** **** **** **** **** ****/
+/* ==== ==== ==== type ==== ==== ==== */
+enum {
+  TNIL = 0,
+  TENV,
+  TTRUE,
+  TFALSE,
+  TSYMBOL,
+  TCONS,
+  TFUN,
+  TINT
+};
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
-#include <ctype.h>
-#include "lcd.h"
-#include <avr/io.h>
-#include <util/delay.h>
+struct cell_s;
 
-/**** **** **** **** **** **** **** **** ****
-               TYPES
- **** **** **** **** **** **** **** **** ****/
+typedef struct cell_s {
+  int type_;
+  union {
+	// data
+	int int_;
+	char * symbol_;
+	struct cell_s * car_;
+  };
+  struct cell_s * cdr_;
+} Cell;
 
-const char symbol_chars[] = "!%^*-=+/\\<>";
+static Cell * Nil   = &(Cell){ TNIL,   .int_ = 0 };
+static Cell * TRUE  = &(Cell){ TTRUE,  .int_ = 1 };
+static Cell * FALSE = &(Cell){ TFALSE, .int_ = 0 };
 
-#define tNIL  (0)
-#define tNUM  (1)
-#define tSYM  (2)
-#define tFUN  (3)
-#define tPRM  (4)
-#define tCONS (5)
+static const char symbols[] = "+-*/!?=<>_:\\%#~&";
+/* ==== ==== ==== ==== ==== ==== ==== */
 
-typedef struct SExpr {
-  int  type;
-  void* car;
-  void* cdr;
-} SExpr;
-
-struct Env;
-
-typedef struct SExpr* primFUN(struct Env** _env , struct SExpr* _args);
-
-typedef struct Env {
-  int        type;
-  primFUN*   fn;
-  SExpr*       head;
-  SExpr*       body;
-  struct Env* next;
-} Env;
-
-static SExpr* NIL;
-static SExpr* TRUE;
-static SExpr* FALSE;
-static Env* END;
-
-#define getCarAsInt(_expr)    ((int*)_expr->car)
-#define getCarAsString(_expr) ((char*)_expr->car)
-#define getCarAsCons(_expr)   ((SExpr*)_expr->car)
-#define getCdrAsCons(_expr)   ((SExpr*)_expr->cdr)
-/**** **** **** **** **** **** **** **** ****
-               Memory manegement
- **** **** **** **** **** **** **** **** ****/
-static void* alloc (int _typeName)
-{
-  SExpr* _newSExpr = malloc(sizeof(SExpr));
-  return _newSExpr;
-}
-
-static void* alloe (int _typeName)
-{
-  Env* _newEnv = malloc(sizeof(Env));
-  _newEnv->type = _typeName;
-  _newEnv->fn   = NULL;
-  _newEnv->head  = NULL;
-  _newEnv->body  = NULL;
-  _newEnv->next = NULL;
-  return _newEnv;
-}
-// [ToDo] GC mark-and-sweep
-
-/**** **** **** **** **** **** **** **** ****
-        To create SExpr
- **** **** **** **** **** **** **** **** ****/
-
-// (_car . _cdr).
-static SExpr* cons (void* _car , void* _cdr)
-{
-  SExpr* _newCons = alloc(tCONS);
-  _newCons->car = _car;
-  _newCons->cdr = _cdr;
-  return _newCons;
-}
-static SExpr* newNUM (int _value , void* _cdr)
-{
-  SExpr* _newCons = alloc(tNUM);
-  _newCons->car = malloc(sizeof(_value));
-  *getCarAsInt(_newCons) = _value;
-  _newCons->cdr = _cdr;
-  return _newCons;
-}
-static SExpr* newSPF (char* _name , void* _cdr , int _typename){
-  int _type;
-  if (_typename == tSYM)
-    _type = tSYM;
-  else if (_typename == tPRM)
-    _type = tPRM;
-  else if (_typename == tFUN)
-    _type = tFUN;
-  else
-    _type = tNIL;
-  SExpr* _newCons = alloc(_type);
-  _newCons->car = malloc(sizeof(_name));
-  strcpy(getCarAsString(_newCons) , _name);
-  _newCons->cdr = _cdr;
-  return _newCons;
-}
-static int readChar2Int (char* _str)
-{
-  int i   = 0;
-  int out = 0;
-  while(0 <= (_str[i]-'0') && (_str[i]-'0') <= 9){
-    out = out*10 + (_str[i]-'0');
-    ++i;
-  }
-  return out;
-}
-static char* readCharToken (char* _str)
-{
-  int i = 0;
-  char* out = (char*)malloc(sizeof(char*));
-  while(_str[i] != ' '&& _str[i] != ')' && _str[i] && _str[i] != '\0' && _str[i] != '\n'){
-    out[i] = out[i] + _str[i];
-    i++;
-  }
-  return out;
-}
-static int lengthOfList (SExpr* _expr)
-{
-  int len = 0;
-  SExpr* r;
-  for (r = _expr  ; r != NIL && r != NULL ; r = r->cdr) {
-    ++len;
-  }
-  return len;
-}
-
-
-/**** **** **** **** **** **** **** **** ****
-               Parser
- **** **** **** **** **** **** **** **** ****/
-static SExpr* nReverse (SExpr* _expr)
-{
-  SExpr* r = NIL;
-  while (_expr != NIL ){
-    SExpr* tmp = _expr;
-    _expr = getCdrAsCons(_expr);
-    tmp->cdr = r;
-    r = tmp;
-  }
+/* ---- ---- make cell ---- ---- */
+static Cell * make_cell (Cell * cell) {
+  Cell * r = malloc(1*sizeof(Cell));
+  *r = *cell;
   return r;
 }
-static int waitBrackets (char* str)
-{
-  int i    = 0;
-  int lCnt = 1;
-  int rCnt = 0;
-  while (lCnt != rCnt){
-    if (str[i] == '('){ lCnt++; }
-    if (str[i] == ')'){ rCnt++; }
-    ++i;
-  }
-  return i;
+
+static Cell * cell_cons (Cell * cell) {
+  return make_cell(&(Cell){TCONS, .car_ = cell});
+}
+static Cell * cell_int (int a) {
+  return make_cell(&(Cell){TINT, .int_=a});
+}
+static Cell * cell_symbol (char * a) {
+  Cell * r = make_cell(&(Cell){TSYMBOL, .int_ = 0});
+  r->symbol_ = malloc(sizeof(char) * (strlen(a) + 1) );
+  strcpy(r->symbol_, a);
+  return r;
 }
 
-static int checkSymPrmFun (char* _str , Env* _env)
-{
-  Env* p;
-  for (p = _env ; p != END ; p = p->next){
-    if (strcmp( _str , getCarAsString(p->head) ) == 0){
-      int _type = p->type;
-      if      (_type == tPRM) return tPRM;
-      else if (_type == tSYM) return tSYM;
-      else if (_type == tFUN) return tFUN;
-    }
+/* ---- ---- ---- ---- ---- ---- */
+
+/* ---- ---- lex tools ---- ---- */
+#define next \
+  do { c = fgetc(fp); } while(0)
+
+static int show_next (void) {
+  int a = fgetc(fp);
+  ungetc(a, fp);
+  return a;
+}
+static Cell * read_int (int a) {
+  int b = a - '0';
+  while (isdigit(show_next())){
+	next;
+	b = b * 10 + (c - '0');
   }
-  return tSYM;
+  return cell_int(b);
+}
+static Cell * read_symbol (char a) {
+  char buf[256];
+  buf[0] = a;
+  int s = 1;
+  while (isalpha(show_next()) || strchr(symbols, show_next())) {
+	next;
+	buf[s++] = c;
+  }
+  buf[s] = '\0';
+  return cell_symbol(buf);
 }
 
-static SExpr* parse (char* str , Env* _env)
-{
-  SExpr* r = NIL;
-  int i = 0;
-  while (str[i] != '\0' && str[i]){
-    /* ---- ---- ---- Ignore space ---- ---- ---- */
-    if (str[i] == ' '){
-      ++i;
-      continue;
-    /* ---- ---- ---- Init Cons ---- ---- ---- */
-    }else if ( str[i] == '('){
-      r = cons( parse(&str[i+1] , _env), r);
-      i = i + waitBrackets(&str[i+1]);
-    /* ---- ---- ---- End Cons ---- ---- ---- */
-    }else if ( str[i] == ')') return nReverse(r);
-    /* ---- ---- ---- S-Expr of Number ---- ---- ---- */
-    else if ( isdigit(str[i])){
-      r = newNUM( readChar2Int(&str[i]), r);
-      while( str[i] != ' ' && str[i] != ')' && str[i]) i++;
-      if (str[i] == ')') break;
-    /* ---- ---- ---- S-Expr of Symbol | Function | Primitive ---- ---- ---- */
-    }else if (isalpha(str[i]) || strchr(symbol_chars , str[i])){
-      char* Token = readCharToken(&str[i]);
-      int _t = checkSymPrmFun(Token , _env);
-      if      (_t == tSYM) r = newSPF(Token , r , tSYM);
-      else if (_t == tPRM) r = newSPF(Token , r , tPRM);
-      else if (_t == tFUN) r = newSPF(Token , r , tFUN);
-      else                 lcd_str("env type error.");
-      while(str[i] != ' ' && str[i] != ')' && str[i]) i++;
-      if (str[i] == ')') break;
-    /* ---- ---- ---- ---- ---- ---- ---- */
-    }else{
-      break;
-    }
-    ++i;
-  }
-  return nReverse(r);
-}
-/**** **** **** **** **** **** **** **** ***
-                    Env
- **** **** **** **** **** **** **** **** ****/
-static SExpr* eval (SExpr*, Env**);
-
-static void addVAR (char* _vname , SExpr* _val , Env** _root , int _typename)
-{
-  int type = tSYM;
-  Env* _new = alloe(type);
-  if (_typename == tSYM){
-    _new->head = newSPF(_vname , _val , tSYM);
-  }
-  _new->next = *_root;
-  *_root = _new;
-}
-
-static Env* addListVAR (SExpr* _vnameList , SExpr* _valList , Env** _root)
-{
-  Env* _new = *_root;
-  SExpr* vnameList;
-  SExpr* valList;
-  for (vnameList = _vnameList, valList = _valList; vnameList != NIL; vnameList = vnameList->cdr, valList = valList->cdr) {
-    Env* tmp = alloe(tSYM);
-    tmp->head = newSPF(getCarAsString(vnameList) , eval(valList , &_new) , tSYM);
-    tmp->next = _new;
-    _new = tmp;
-  }
-  return _new;
-}
-
-/**** **** **** **** **** **** **** **** ****
-               Eval
- **** **** **** **** **** **** **** **** ****/
-
-
-static SExpr* findSPF (Env* _env , char* _name , int _typename)
-{
-  Env* e;
-  for (e = _env ; e != END ; e = e->next)
-    if (e->type == _typename && strcmp(getCarAsString(e->head) , _name) == 0)
-      return getCdrAsCons(e->head);
-  lcd_str("dont find spf.");
-  return NIL;
-}
-
-static SExpr* apply (SExpr* _expr , SExpr* _args , Env** _env)
-{
-  switch(_expr->type){
-  case tPRM:{
-    Env* e;
-    for (e = *_env ; e != END ; e = e->next)
-      if (e->type == tPRM && strcmp(getCarAsString(e->head),getCarAsString(_expr)) == 0)
-        return e->fn(_env , _args);
-    lcd_str("Don't find in Env.");
-    return NIL;
-  }
-  case tFUN:{
-    SExpr* symbols = _expr->car;
-    SExpr* body      = _expr->cdr;
-    Env*    tmpEnv  = *_env;
-    tmpEnv = addListVAR(symbols , _args , &tmpEnv);
-    return eval( body , &tmpEnv );
-  }  
-  }
-  return NIL;
-}
-
-static SExpr* eval (SExpr* _expr , Env** _env)
-{
-  switch (_expr->type){
-  case tNIL:
-  case tNUM:
-  case tPRM:
-  case tFUN:
-    return _expr;
-  case tSYM:{
-    SExpr* a = findSPF(*_env , getCarAsString(_expr) , tSYM);
-    return eval(a , _env);
-  }
-  case tCONS:{
-    SExpr* expr = eval(getCarAsCons(_expr) , _env);
-    SExpr* args = getCdrAsCons(getCarAsCons(_expr));
-    return apply(expr , args , _env);
-  }
-  default:
-    return NIL;
+/* ==== ==== ==== parser ==== ==== ==== */
+static Cell * parse (void) {
+  for(;;) {
+	next;
+	if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
+	  continue;
+	if (c == EOF)
+	  return Nil;
+	if (isdigit(c)) {
+	  Cell * r = read_int(c);
+	  r->cdr_  = parse();
+	  return r;
+	}
+	if (isalpha(c) || strchr(symbols,c)) {
+	  Cell * r = read_symbol(c);
+	  r->cdr_  = parse();
+	  return r;
+	}
+	if (c == '(') {
+	  Cell * r = cell_cons(parse());
+	  r->cdr_  = parse();
+	  return r;
+	}
+	if (c == ')') {
+	  return Nil;
+	}
   }
 }
-/**** **** **** **** **** **** **** **** ****
-              Primitive
- **** **** **** **** **** **** **** **** ****/
-static void defPRM (char* fnName , primFUN* _fn , Env** _root)
-{
-  Env* _new = alloe(tPRM);
-  _new->head = newSPF(fnName,NIL,tPRM);
-  _new->fn = _fn;
-  _new->next = *_root;
-  *_root = _new;
+/* ==== ==== ==== ====== ==== ==== ==== */
+
+/* ==== ==== ==== eval ==== ==== ==== */
+static inline Cell * plus_eval   (Cell*, Cell**);
+static inline Cell * minus_eval  (Cell*, Cell**);
+static inline Cell * time_eval   (Cell*, Cell**);
+static inline Cell * divid_eval  (Cell*, Cell**);
+static inline Cell * great_eval  (Cell*, Cell**);
+static inline Cell * less_eval   (Cell*, Cell**);
+static inline Cell * equal_eval  (Cell*, Cell**);
+static inline Cell * if_eval     (Cell*, Cell**);
+static inline Cell * car_eval    (Cell*, Cell**);
+static inline Cell * cdr_eval    (Cell*, Cell**);
+static inline Cell * def_eval    (Cell*, Cell**);
+static inline Cell * lambda_eval (Cell*, Cell**);
+static Cell * eval (Cell*, Cell**);
+
+static Cell * set_lambda_args (Cell * name_l_, Cell * v_l_, Cell ** env ) {
+  Cell * local_env = *env;
+  Cell * name_l;
+  Cell * v_l;
+  for (name_l = name_l_, v_l = v_l_;name_l!=Nil&&v_l!=Nil;name_l = name_l->cdr_, v_l = v_l->cdr_) {
+	Cell * A = make_cell(&(Cell){TCONS,.car_=name_l->car_,.cdr_=eval(v_l,env)});
+	Cell * new_env = make_cell(&(Cell){TCONS, .car_=A, .cdr_=local_env});
+	local_env = new_env;
+  }
+  return local_env;
 }
 
-// ('expr)
-static SExpr* pQUOTE (Env** _env , SExpr* _expr)
-{
-  if (lengthOfList(_expr) != 1) lcd_str("Q is must 1 S-Expr.");
-  return _expr;
+#define primitive(n,s) \
+  do{if (strcmp(cell->symbol_,#s)==0) return n##_eval(args, env);}while(0)
+
+static Cell * apply (Cell * cell, Cell * args, Cell ** env) {
+  switch(cell->type_){
+  case TSYMBOL:
+	primitive(plus,        +);
+	primitive(minus,       -);
+	primitive(time,        *);
+	primitive(divid,       /);
+	primitive(great,       >);
+	primitive(less,        <);
+	primitive(equal,       =);
+	primitive(if,         if);
+	primitive(car,       car);
+	primitive(cdr,       cdr);
+	primitive(def,       def);
+	primitive(lambda, lambda);
+	break;
+  case TFUN:{
+	Cell * local_env = *env;
+	local_env = set_lambda_args(cell->car_, args, env);
+	return eval(cell->cdr_, &local_env);
+  }
+  }
+  return Nil;
 }
 
-// (+ <NUMBER> ...
-static SExpr* pPlus (Env** _env , SExpr* _expr)
-{
+static Cell * find_symbol (Cell * cell, Cell ** env) {
+  for (Cell * E = *env; E != Nil; E = E->cdr_ ) {
+	if (strcmp(cell->symbol_,E->car_->symbol_)==0) {
+	  return E->car_->cdr_;
+	}
+  }
+  return cell;
+}
+
+static Cell * eval (Cell * cell, Cell ** env) {
+  switch(cell->type_){
+  case TNIL: case TTRUE: case TFALSE: case TINT: case TFUN:
+	return cell;
+  case TCONS:
+	return apply( eval(cell->car_,env), cell->car_->cdr_, env);
+  case TSYMBOL:
+	return find_symbol(cell, env);
+  case TENV:
+	printf("env");
+	break;
+  }
+
+  return eval(cell->cdr_, env);
+}
+
+static inline Cell * plus_eval (Cell * cell, Cell ** env) {
   int result = 0;
-  SExpr* p;
-  for (p = _expr ; p != NIL ; p = p->cdr){
-    SExpr* T = eval(p , _env);
-    //if (T->type != tNUM) //printf("pPlus must take number.\n");
-    //else
-    if (T->type == tNUM) result += *getCarAsInt(T);
+  for (Cell * p = cell; p != Nil; p = p->cdr_) {
+	Cell * T = eval(p, env);
+	if (T->type_ == TINT)
+	  result += T->int_;
+	else
+	  printf("arg isnot 'TINT' for '+' symbols\n");
   }
-  return newNUM(result , NIL);
+  return cell_int(result);
 }
-// (- <NUMBER> ...
-static SExpr* pMinus (Env** _env , SExpr* _expr)
-{
-  int result;
-  int l = lengthOfList(_expr);
-  if (l == 0)
-    result = 0;
-  
-  else if (l == 1) {
-    SExpr* r = eval(_expr , _env);
-    result = -(*getCarAsInt(r));
-
-  }else{
-    result = *getCarAsInt(_expr);
-    SExpr* p;
-    for (p = getCdrAsCons(_expr) ; p != NIL ; p = p->cdr){
-      SExpr* r = eval(p , _env);
-      if (r->type != tNUM) lcd_str("Minus must take num.");
-      else                 result -= *getCarAsInt(r);
-    }
+static inline Cell * minus_eval (Cell * cell, Cell ** env) {
+  Cell * p = eval(cell,env);
+  int result = p->int_;
+  for (p = cell->cdr_; p != Nil; p = p->cdr_) {
+	Cell * T = eval(p, env);
+	if (T->type_ == TINT)
+	  result -= T->int_;
+	else
+	  printf("arg isnot 'TINT' for '-' symbols\n");
   }
-  return newNUM(result , NIL);
+  return cell_int(result);
 }
-// (* <NUMBER> ...
-static SExpr* pMultiplied (Env** _env , SExpr* _expr)
-{
+static inline Cell * time_eval (Cell * cell, Cell ** env) {
   int result = 1;
-  SExpr* p;
-  for (p = _expr ; p != NIL ; p = p->cdr){
-    SExpr* T = eval(p , _env);
-    if (T->type != tNUM) lcd_str("Mult must take num.");
-    else result *= *getCarAsInt(T);
+  for (Cell * p = cell; p != Nil; p = p->cdr_) {
+	Cell * T = eval(p, env);
+	if (T->type_ == TINT){
+	  if (T->int_)
+		result *= T->int_;
+	  else
+		return cell_int(0);
+	}
+	else
+	  printf("arg isnot 'TINT' for '*' symbols\n");
   }
-  return newNUM(result , NIL);
+  return cell_int(result);
 }
-// (/ <NUMBER> ...
-static SExpr* pDivided (Env** _env , SExpr* _expr)
-{
-  int result = *getCarAsInt(_expr);
-  SExpr* p;
-  for (p = getCdrAsCons(_expr) ; p != NIL ; p = p->cdr){
-    SExpr* T = eval(p , _env);
-    if      (T->type != tNUM)      lcd_str("Divid must take num");
-    else if (*getCarAsInt(T) == 0) lcd_str("not divided by zero.");
-    else  result /= *getCarAsInt(T);
+static inline Cell * divid_eval (Cell * cell, Cell ** env) {
+  Cell * p = eval(cell,env);
+  int result = p->int_;
+  for (p = cell->cdr_; p != Nil; p = p->cdr_){
+	Cell * T = eval(p,env);
+	if (T->type_ == TINT) {
+	  if (T->int_)
+		result /= T->int_;
+	  else{
+		printf("divided not have 0\n");
+		return cell_int(0);
+	  }
+	}
+	else
+	  printf("arg isnot 'TINT' for '/' symbols\n");
   }
-  return newNUM(result , NIL);
+  return cell_int(result);
 }
-// (> A B)
-static SExpr* pGreater (Env** _env , SExpr* _expr)
-{
-  SExpr* A = eval(_expr               , _env);
-  SExpr* B = eval(getCdrAsCons(_expr) , _env);
-  if      (*getCarAsInt(A) > *getCarAsInt(B))      return TRUE;
-  else if ( !(*getCarAsInt(A) > *getCarAsInt(B)) ) return FALSE;
-  else                                             lcd_str("pGreater error.");
-  return NIL;
+static inline Cell * great_eval (Cell * cell, Cell ** env) {
+  Cell * L = eval(cell,       env);
+  Cell * R = eval(cell->cdr_, env);
+  if (L->type_ == TINT)
+	return (L->int_ > R->int_) ? TRUE : FALSE;
+  printf("greater error\n");
+  return Nil;
 }
-// (< A B)
-static SExpr* pLess (Env** _env , SExpr* _expr)
-{
-  SExpr* A = eval(_expr               , _env);
-  SExpr* B = eval(getCdrAsCons(_expr) , _env);
-  if      (*getCarAsInt(A) < *getCarAsInt(B))      return TRUE;
-  else if ( !(*getCarAsInt(A) < *getCarAsInt(B)) ) return FALSE;
-  else                                             lcd_str("pLess error.");
-  return NIL;
+static inline Cell * less_eval (Cell * cell, Cell ** env) {
+  Cell * L = eval(cell,       env);
+  Cell * R = eval(cell->cdr_, env);
+  if (L->type_ == TINT)
+	return (L->int_ < R->int_) ? TRUE : FALSE;
+  printf("less error\n");
+  return Nil;
 }
-// (= A B)
-static SExpr* pEqual (Env** _env , SExpr* _expr)
-{
-  SExpr* A = eval(_expr               , _env);
-  SExpr* B = eval(getCdrAsCons(_expr) , _env);
-  if      (*getCarAsInt(A) == *getCarAsInt(B))      return TRUE;
-  else if ( !(*getCarAsInt(A) == *getCarAsInt(B)) ) return FALSE;
-  else                                              lcd_str("pEqual error.");
-  return NIL;
+static inline Cell * equal_eval (Cell * cell, Cell ** env) {
+  Cell * L = eval(cell,       env);
+  Cell * R = eval(cell->cdr_, env);
+  if (L->type_ == TINT)
+	return (L->int_ == R->int_) ? TRUE : FALSE;
+  printf("equal error\n");
+  return Nil;
 }
-// (if (TRUE | FALSE) A B)
-static SExpr* pIf (Env** _env , SExpr* _expr)
-{
-  SExpr* P = eval(_expr , _env); // TRUE | FALSE
-  if      (P == TRUE)  return eval(getCdrAsCons(_expr) , _env);
-  else if (P == FALSE) return eval(getCdrAsCons(getCdrAsCons(_expr)) , _env);
-  else                 lcd_str("pIf error.");
-  return NIL;
+static inline Cell * if_eval (Cell * cell, Cell ** env) {
+  Cell * p = eval(cell,env);
+  if (p == TRUE)
+	return eval (cell->cdr_, env);
+  if (p == FALSE)
+	return eval (cell->cdr_->cdr_, env);
+
+  printf("if error\n");
+  return Nil;
 }
-// (cons A B) -> (A . B)
-static SExpr *pCons (Env** _env , SExpr* _expr)
-{
-  SExpr* A = _expr;
-  SExpr* B = getCdrAsCons(_expr);
-  return cons(A , B);
+static inline Cell * car_eval (Cell * cell, Cell ** env) {
+  return cell->car_;
 }
-// (car (A _)) -> A
-static SExpr* pCar (Env** _env , SExpr* _expr)
-{
-  SExpr* A = getCarAsCons(_expr);
-  return A;
+static inline Cell * cdr_eval (Cell * cell, Cell ** env) {
+  return cell->car_->cdr_;
 }
-// (cdr (A _)) -> _
-static SExpr* pCdr (Env** _env , SExpr* _expr)
-{
-  SExpr* O = getCdrAsCons(getCarAsCons(_expr));
-  return O;
+static inline Cell * def_eval (Cell * cell, Cell ** env) {
+  Cell * new_env = cell_cons(cell);
+  new_env->car_->cdr_ = eval(cell->cdr_, env);
+  new_env->cdr_ = *env;
+  *env = new_env;
+  return new_env;
 }
-// (define <STMBOL> body)
-static SExpr* pDefine (Env** _env , SExpr* _expr)
-{
-  char* vname  = getCarAsString(_expr);
-  SExpr* body  = getCdrAsCons(_expr);
-  addVAR(vname , body , _env , tSYM);
-  lcd_str("defed.");
-  return body;
+static inline Cell * lambda_eval (Cell * cell, Cell ** env) {
+  return make_cell(&(Cell){TFUN, .car_=cell->car_,.cdr_=cell->cdr_});
 }
-// (lambda (x ..) expr ..)
-static SExpr* pLambda (Env** _env , SExpr* _expr)
-{
-  SExpr* _new = alloc(tFUN);
-  _new->car = _expr->car; // symbols
-  _new->cdr = _expr->cdr; // body
-  return _new;
-}
-// (q) -- quit
-/*
-static SExpr *pQuit (Env **_env , SExpr *_expr)
-{
-  printf("\nGood bye. :D\n");
-    exit(1);
-}
-*/
-static void setPRIMITIVE (Env** _env)
-{
-  defPRM("q"   , pQUOTE      , _env);
-  defPRM("-"     , pMinus      , _env);
-  defPRM("*"     , pMultiplied , _env);
-  defPRM("+"     , pPlus       , _env);
-  defPRM("/"     , pDivided    , _env);
-  defPRM(">"     , pGreater    , _env);
-  defPRM("<"     , pLess       , _env);
-  defPRM("="     , pEqual      , _env);
-  defPRM("i"    , pIf         , _env);
-  defPRM("s"  , pCons       , _env);
-  defPRM("a"   , pCar        , _env);
-  defPRM("d"   , pCdr        , _env);
-  //defPRM("q"     , pQuit       , _env);
-  defPRM("f"   , pDefine     , _env);
-  defPRM("\\"    , pLambda     , _env);
- }
-/**** **** **** **** **** **** **** **** ****
-              for User
- **** **** **** **** **** **** **** **** ****/
-static void print (SExpr* _expr)
-{
-  if (_expr == NIL){
-    lcd_str("<NIL>");
-  }else{
-    switch (_expr->type){
-    case tNUM:{
-      char s[3];
-      sprintf(s,"%d",*getCarAsInt(_expr));
-      lcd_str("<N>=");
-      lcd_str(s);
-      break;
-    }
-    case tSYM:
-      lcd_str("<S>.");
-      return;
-    case tPRM:
-      lcd_str("<P>.");
-      return;
-    case tFUN:
-      lcd_str("<F>.");
-      return;
-    case tCONS:
-      lcd_str("<C>.");
-      return;
-    default:{
-      if (_expr == TRUE){
-        lcd_str("<B> = T.");
-      }else if (_expr == FALSE){
-        lcd_str("<B> = F.");
-      }
-    }
-    }
+
+/* ==== ==== ==== ==== ==== ==== ==== */
+
+static void print (Cell * cell) {
+  printf("\n");
+  switch(cell->type_) {
+  case TNIL:
+	printf("TNIL(nil)");
+	break;
+  case TINT:
+	printf("TINT(%d)", cell->int_);
+	break;
+  case TTRUE:
+	printf("TTRUE");
+	break;
+  case TFALSE:
+	printf("TFALSE");
+	break;
+  case TSYMBOL:
+	printf("TSYMBOL(%s)",cell->symbol_);
+	break;
+  case TCONS:
+	printf("TCONS: %s",cell->car_->symbol_);
+	break;
+  case TFUN:
+	printf("TFUN");
+	break;
+  default:
+	printf("nothing");
   }
+  printf("\n");
 }
-/**** **** **** **** **** **** **** **** ****
-               Main Loop
- **** **** **** **** **** **** **** **** ****/
-int main (void)
+
+/* ==== ==== ==== main loop ==== ==== ==== */
+int main (int argv, char* argc[])
 {
-  DDRB  = 0b00000000;
-  PORTB = 0b11111111;
-  lcd_init();
-  
-  NIL   = malloc(sizeof(void *));
-  TRUE  = malloc(sizeof(void *));
-  FALSE = malloc(sizeof(void *));
-  END   = malloc(sizeof(void *)); 
+  Cell * E = Nil;
 
-  Env* env;
-  env = malloc(sizeof(Env*));
-  
-  env = END;
-
-  setPRIMITIVE(&env);
-
-  char str[20];
-  
-  lcd_pos(1,1);
-  lcd_str("> ");
-  
-  int i;
-  for (i = 0; i < 20; i++)
-    str[i] = '\0';
-
-  i = 0;
-  int j = 0;
-  while(1){
-
-    /*---- ---- count ---- ----*/
-    if (bit_is_clear(PINB,PB1)){
-      j++;
-      while(bit_is_clear(PINB,PB1));
-      _delay_ms(0.5);
-      
-    }
-    /*---- ---- number ---- ----*/
-    else if (bit_is_clear(PINB,PB2)){
-      str[i] = '0' + j;
-      lcd_data(str[i]);
-      i++;
-      j=0;
-      while(bit_is_clear(PINB,PB2));
-      _delay_ms(0.5);
-    }
-    /*---- ---- symbol ---- ----*/
-    else if (bit_is_clear(PINB,PB3)){
-      switch(j){
-      case 0:{str[i] = ' ';break;}
-      case 1:{str[i] = '(';break;}
-      case 2:{str[i] = ')';break;}
-      case 3:{str[i] = 'q';break;}
-      case 4:{str[i] = '-';break;}
-      case 5:{str[i] = '*';break;}
-      case 6:{str[i] = '+';break;}
-      case 7:{str[i] = '/';break;}
-      case 8:{str[i] = '>';break;}
-      case 9:{str[i] = '<';break;}
-      case 10:{str[i] = '=';break;}
-      case 11:{str[i] = 'i';break;}
-      case 12:{str[i] = 's';break;}
-      case 13:{str[i] = 'a';break;}
-      case 14:{str[i] = 'd';break;}
-      case 15:{str[i] = 'f';break;}
-      case 16:{str[i] = '\\';break;}
-      default:break;
-      }
-      lcd_data(str[i]);
-      i++;
-      j=0;
-
-      while(bit_is_clear(PINB,PB3));
-      _delay_ms(0.5);
-    }
-    /*---- ---- action ---- ----*/
-    else if (bit_is_clear(PINB,PB4)){
-      i=0;
-      j=0;
-      while(bit_is_clear(PINB,PB4));
-      _delay_ms(0.5);
-      SExpr *root = parse(str , env);
-  
-      lcd_pos(3,1);
-      print( eval(root , &env) );
-      int k;
-      for (k = 0; k < 20; k++)
-        str[k] = '\0';
-    }
-    else if (bit_is_clear(PINB,PB5)){
-
-      lcd_clear();
-      lcd_pos(1,1);
-      lcd_data('>');
-      while(bit_is_clear(PINB,PB5));
-      _delay_ms(0.5);
-    }
-    
-
+  if (argc[1]){
+	fp = fopen(argc[1], "r");
+	Cell * R = parse();
+	do {
+	  print(eval(R, &E));
+	  R = R->cdr_;
+	} while( R != Nil );
   }
-  
-  free(NIL);
-  free(TRUE);
-  free(FALSE);
-  free(END);
   
   return 0;
 }
