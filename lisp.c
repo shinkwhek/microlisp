@@ -9,6 +9,7 @@ int c;		// current
 /* ==== ==== ==== type ==== ==== ==== */
 enum {
   TNIL = 0,
+  TUNIT,
   TENV,
   TTRUE,
   TFALSE,
@@ -186,15 +187,14 @@ static Cell * find_symbol (Cell * cell, Cell ** env) {
 
 static Cell * eval (Cell * cell, Cell ** env) {
   switch(cell->type_){
+  case TUNIT: case TENV:
+	break;
   case TNIL: case TTRUE: case TFALSE: case TINT: case TFUN:
 	return cell;
   case TCONS:
 	return apply( eval(cell->car_,env), cell->car_->cdr_, env);
   case TSYMBOL:
 	return find_symbol(cell, env);
-  case TENV:
-	printf("env");
-	break;
   }
 
   return eval(cell->cdr_, env);
@@ -325,70 +325,46 @@ static inline Cell * print_eval (Cell * cell, Cell ** env) {
 	printf("nil");
 	break;
   case TTRUE:
-	printf("true .");
+	printf("true");
 	break;
   case TFALSE:
-	printf("false .");
+	printf("false");
 	break;
   case TINT:
-	printf("%d .", cell->int_);
+	printf("%d", cell->int_);
 	break;
   case TFUN:
-	printf("lambda function .");
+	printf("lambda function");
 	break;
   case TCONS:
-	printf("cons cell .");
+	printf("cons cell");
 	break;
   case TSYMBOL:
 	printf("symbol '%s' : ", cell->symbol_);
 	print_eval(eval(cell, env), env);
 	break;
   case TENV:
-	printf("env .");
-	break;
-  default:
-	printf("nothing.");
-  }
-  printf("\n");
-}
-
-/* ==== ==== ==== ==== ==== ==== ==== */
-
-static void print (Cell * cell) {
-  printf("\n");
-  switch(cell->type_) {
-  case TNIL:
-	printf("TNIL(nil)");
-	break;
-  case TINT:
-	printf("TINT(%d)", cell->int_);
-	break;
-  case TTRUE:
-	printf("TTRUE");
-	break;
-  case TFALSE:
-	printf("TFALSE");
-	break;
-  case TSYMBOL:
-	printf("TSYMBOL(%s)",cell->symbol_);
-	break;
-  case TCONS:
-	printf("TCONS: %s",cell->car_->symbol_);
-	break;
-  case TFUN:
-	printf("TFUN");
+	printf("env");
 	break;
   default:
 	printf("nothing");
   }
-  printf("\n");
+  if (cell->type_ != TSYMBOL)
+	printf("\n");
+  return make_cell(&(Cell){TUNIT});
 }
+/* ==== ==== ==== ==== ==== ==== ==== */
 
 /* ==== ==== ==== main loop ==== ==== ==== */
 int main (int argv, char* argc[])
 {
   Cell * E = Nil;
 
+  if (argv <= 1) {
+	perror("no input file.");
+	exit(1);
+  }
+  
   if (argc[1]){
 	fp = fopen(argc[1], "r");
 	Cell * R = parse();
