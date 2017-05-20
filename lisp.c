@@ -131,6 +131,7 @@ static inline Cell * car_eval    (Cell*, Cell**);
 static inline Cell * cdr_eval    (Cell*, Cell**);
 static inline Cell * def_eval    (Cell*, Cell**);
 static inline Cell * lambda_eval (Cell*, Cell**);
+static inline Cell * print_eval  (Cell*, Cell**);
 static Cell * eval (Cell*, Cell**);
 
 static Cell * set_lambda_args (Cell * name_l_, Cell * v_l_, Cell ** env ) {
@@ -163,6 +164,7 @@ static Cell * apply (Cell * cell, Cell * args, Cell ** env) {
 	primitive(cdr,       cdr);
 	primitive(def,       def);
 	primitive(lambda, lambda);
+	primitive(print,   print);
 	break;
   case TFUN:{
 	Cell * local_env = *env;
@@ -316,6 +318,39 @@ static inline Cell * def_eval (Cell * cell, Cell ** env) {
 static inline Cell * lambda_eval (Cell * cell, Cell ** env) {
   return make_cell(&(Cell){ TFUN, .car_=cell->car_,.cdr_=cell->cdr_ });
 }
+// (print _)
+static inline Cell * print_eval (Cell * cell, Cell ** env) {
+  switch(cell->type_) {
+  case TNIL:
+	printf("nil");
+	break;
+  case TTRUE:
+	printf("true .");
+	break;
+  case TFALSE:
+	printf("false .");
+	break;
+  case TINT:
+	printf("%d .", cell->int_);
+	break;
+  case TFUN:
+	printf("lambda function .");
+	break;
+  case TCONS:
+	printf("cons cell .");
+	break;
+  case TSYMBOL:
+	printf("symbol '%s' : ", cell->symbol_);
+	print_eval(eval(cell, env), env);
+	break;
+  case TENV:
+	printf("env .");
+	break;
+  default:
+	printf("nothing.");
+  }
+  printf("\n");
+}
 
 /* ==== ==== ==== ==== ==== ==== ==== */
 
@@ -358,7 +393,7 @@ int main (int argv, char* argc[])
 	fp = fopen(argc[1], "r");
 	Cell * R = parse();
 	do {
-	  print(eval(R, &E));
+	  eval(R, &E);
 	  R = R->cdr_;
 	} while( R != Nil );
   }
