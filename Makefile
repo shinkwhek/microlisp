@@ -1,13 +1,13 @@
 
-CC	= cc
+CC	= gcc
 LISP	= lisp
-FLAG	= -W -Wall -O0
+FLAG	= -Wall -O0
 
 FILE	= lisp.c
 
 BIN 	= bin
 
-RM	= rm
+RM	= rm -rf
 
 all: $(BIN)/$(LISP)
 
@@ -19,4 +19,4 @@ debug: $(FILE)
 	sudo gdb $(BIN)/debug
 
 clean:
-	$(RM) -rf *.o $(BIN)/$(LISP) $(BIN)/debug*
+	$(RM) *.o $(BIN)/$(LISP) $(BIN)/debug*
