@@ -8,11 +8,15 @@ Small LISP Interpreter.
 
 This is a Lisp interpreter, which is so small, easy to read and understand.
 
+(  gc is not work now ... )
+
 ## REQUIREMENT
 
+to build
 + gcc
 + perl
-+ gosh
+to test
++ gauche
 
 ## BUILD
 
