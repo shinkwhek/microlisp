@@ -8,7 +8,13 @@ Small LISP Interpreter.
 
 This is a Lisp interpreter, which is so small, easy to read and understand.
 
-### BUILD
+## REQUIREMENT
+
++ gcc
++ perl
++ gosh
+
+## BUILD
 
 ```console
 $ make
