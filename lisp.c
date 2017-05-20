@@ -2,9 +2,10 @@
 #include<stdlib.h>
 #include<ctype.h>
 #include<string.h>
+#include <stdbool.h>
 
 FILE * fp;
-int c;		// current
+static int c;		// current
 
 /* ==== ==== ==== type ==== ==== ==== */
 enum {
@@ -30,8 +31,11 @@ typedef struct cell_s {
 	struct cell_s * car_;
   };
   struct cell_s * cdr_;
+
+  bool gc_flag; //gc
 } Cell;
 
+static Cell * root;
 static Cell * Nil   = &(Cell){ TNIL,   .int_ = 0 };
 static Cell * TRUE  = &(Cell){ TTRUE,  .int_ = 1 };
 static Cell * FALSE = &(Cell){ TFALSE, .int_ = 0 };
@@ -39,10 +43,65 @@ static Cell * FALSE = &(Cell){ TFALSE, .int_ = 0 };
 static const char symbols[] = "+-*/!?=<>_:\\%#~&";
 /* ==== ==== ==== ==== ==== ==== ==== */
 
+/* ==== ==== ====  gc  ==== ==== ==== */
+#define GC_STACK_SIZE 65536
+
+typedef struct {
+  Cell * target;
+} gc_stack;
+
+static gc_stack gcstacks[GC_STACK_SIZE];
+
+static int gc_current = 0;
+
+#define CELL_CHECK(cell) if(cell!=Nil && cell!=TRUE && cell!=FALSE)
+
+static void gc_set (Cell * cell) {
+  gcstacks[gc_current].target = cell;
+  if (gc_current >= GC_STACK_SIZE-1) {
+	perror("gc error: not enough size of gcstacks.");
+	exit(1);
+  }
+  gc_current++;
+}
+
+static void gc_mark (Cell * cell) {
+  CELL_CHECK(cell) {
+	cell->gc_flag = true;
+	CELL_CHECK(cell->car_) {
+	  gc_mark(cell->car_);
+	}
+	CELL_CHECK(cell->cdr_) {
+	  gc_mark(cell->cdr_);
+	}
+  }
+}
+static void gc_sweep (void) {
+  for (int i = 0; i < GC_STACK_SIZE; i++) {
+	if(gcstacks[i].target!=NULL && gcstacks[i].target->gc_flag == false) {
+	  if(gcstacks[i].target->type_ == TSYMBOL)
+		free(gcstacks[i].target->symbol_);
+	  free(gcstacks[i].target);
+	}else{
+	  return;
+	}
+  }
+}
+
+static void gc (void) {
+  gc_mark(root);
+  gc_sweep();
+  gc_current = 0;
+}
+
+/* ==== ==== ==== ==== ==== ==== ==== */
+
 /* ---- ---- make cell ---- ---- */
 static Cell * make_cell (Cell * cell) {
   Cell * r = malloc( 1 * sizeof(Cell) );
   *r = *cell;
+  r->gc_flag = false; //gc
+  gc_set(r);
   return r;
 }
 
@@ -357,8 +416,8 @@ static inline Cell * print_eval (Cell * cell, Cell ** env) {
 /* ==== ==== ==== main loop ==== ==== ==== */
 int main (int argv, char* argc[])
 {
-  Cell * E = Nil;
-
+  root = Nil;
+  
   if (argv <= 1) {
 	perror("no input file.");
 	exit(1);
@@ -371,7 +430,8 @@ int main (int argv, char* argc[])
 	  fp = fopen(argc[1], "r");
 	  Cell * R = parse();
 	  do {
-		eval(R, &E);
+		eval(R, &root);
+//		gc();
 		R = R->cdr_;
 	  } while( R != Nil );
 	}
