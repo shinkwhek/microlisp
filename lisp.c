@@ -366,12 +366,16 @@ int main (int argv, char* argc[])
   }
   
   if (argc[1]){
-	fp = fopen(argc[1], "r");
-	Cell * R = parse();
-	do {
-	  eval(R, &E);
-	  R = R->cdr_;
-	} while( R != Nil );
+	if (strcmp( ".lisp" ,strstr(argc[1],".") ) != 0)
+	  perror("file format is not .lisp");
+	else {
+	  fp = fopen(argc[1], "r");
+	  Cell * R = parse();
+	  do {
+		eval(R, &E);
+		R = R->cdr_;
+	  } while( R != Nil );
+	}
   }
   
   return 0;
