@@ -13,6 +13,7 @@ This is a Lisp interpreter, which is so small, easy to read and understand.
 to build
 + gcc
 + perl
+
 to test
 + gauche
 
