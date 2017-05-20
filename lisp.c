@@ -163,7 +163,7 @@ static Cell * apply (Cell * cell, Cell * args, Cell ** env) {
 	primitive(if,         if);
 	primitive(car,       car);
 	primitive(cdr,       cdr);
-	primitive(def,       def);
+	primitive(def,    define);
 	primitive(lambda, lambda);
 	primitive(print,   print);
 	break;
@@ -306,7 +306,7 @@ static inline Cell * car_eval (Cell * cell, Cell ** env) {
 static inline Cell * cdr_eval (Cell * cell, Cell ** env) {
   return cell->car_->cdr_;
 }
-// (def _ _)
+// (define _ _)
 static inline Cell * def_eval (Cell * cell, Cell ** env) {
   Cell * new_env = cell_cons(cell);
   new_env->car_->cdr_ = eval(cell->cdr_, env);
@@ -325,10 +325,10 @@ static inline Cell * print_eval (Cell * cell, Cell ** env) {
 	printf("nil");
 	break;
   case TTRUE:
-	printf("true");
+	printf("#t");
 	break;
   case TFALSE:
-	printf("false");
+	printf("#f");
 	break;
   case TINT:
 	printf("%d", cell->int_);
@@ -340,8 +340,7 @@ static inline Cell * print_eval (Cell * cell, Cell ** env) {
 	printf("cons cell");
 	break;
   case TSYMBOL:
-	printf("symbol '%s' : ", cell->symbol_);
-	print_eval(eval(cell, env), env);
+	print_eval(find_symbol(cell, env), env);
 	break;
   case TENV:
 	printf("env");

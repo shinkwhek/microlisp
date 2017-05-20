@@ -8,21 +8,27 @@ Small LISP Interpreter.
 
 This is a Lisp interpreter, which is so small, easy to read and understand.
 
-## BUILD
+### BUILD
 
-```shell
+```console
 $ make
 ```
 
-## RUN
+### RUN
 
-```shell
+```console
 $ ./bin/lisp <file>
 ```
 
-Clean
+### TEST
 
-```shell
+```console
+$ make test
+```
+
+### CLEAN
+
+```console
 $ make clean
 ```
 

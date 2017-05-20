@@ -1,0 +1,8 @@
+(define x (> 1 2))
+(print x)
+(define y (< 1 2))
+(print y)
+(define z (= 1 2))
+(print z)
+(define w (= 1 1))
+(print w)
