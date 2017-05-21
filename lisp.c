@@ -309,17 +309,28 @@ static inline Cell * car_eval (Cell * cell, Cell ** env) {
 static inline Cell * cdr_eval (Cell * cell, Cell ** env) {
   return cell->car_->cdr_;
 }
-// (define _ _)
-static inline Cell * def_eval (Cell * cell, Cell ** env) {
-  Cell * new_env = cell_cons(cell);
-  new_env->car_->cdr_ = eval(cell->cdr_, env);
-  new_env->cdr_ = *env;
-  *env = new_env;
-  return new_env;
-}
 // (lambda (_ ...) _)
 static inline Cell * lambda_eval (Cell * cell, Cell ** env) {
-  return make_cell(&(Cell){ TFUN, .car_=cell->car_,.cdr_=cell->cdr_ });
+  return make_cell(&(Cell){ TFUN, .car_=cell->car_, .cdr_=cell->cdr_ });
+}
+// (define _ _)
+static inline Cell * def_eval (Cell * cell, Cell ** env) {
+  Cell * new_env = NULL;
+  if (cell->type_ != TCONS) { // (define var body)
+	new_env = cell_cons(cell);
+	new_env->car_->cdr_ = eval(cell->cdr_, env);
+	new_env->cdr_ = *env;
+	*env = new_env;
+  } else { // (define (fname lvar) body)
+	Cell * fname = cell->car_;
+	Cell * lvars  = cell->car_->cdr_;
+	Cell * body  = cell->cdr_;
+	fname->cdr_ = make_cell(&(Cell){ TFUN, .car_=lvars, .cdr_=body });
+	new_env = cell_cons(fname);
+	new_env->cdr_ = *env;
+	*env = new_env;
+  }
+  return new_env;
 }
 // (print _)
 static inline Cell * print_eval (Cell * cell, Cell ** env) {
