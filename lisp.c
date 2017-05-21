@@ -107,6 +107,9 @@ static Cell * parse (void) {
 	  r->cdr_  = parse();
 	  return r;
 	}
+	if (c == '\'' && show_next() == '(') {
+	  next;
+	}
 	if (c == '(') {
 	  Cell * r = cell_cons(parse());
 	  r->cdr_  = parse();
@@ -346,7 +349,7 @@ static inline Cell * print_eval (Cell * cell, Cell ** env) {
 	printf("env");
 	break;
   default:
-	printf("nothing");
+	printf("print nothing");
   }
   if (cell->type_ != TSYMBOL)
 	printf("\n");
