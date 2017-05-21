@@ -81,7 +81,7 @@ static Cell * read_symbol (char a) {
   char buf[256];
   buf[0] = a;
   int s = 1;
-  while (isalpha(show_next()) || strchr(symbols, show_next())) {
+  while (isalpha(show_next()) || isdigit(show_next()) || strchr(symbols, show_next())) {
 	next;
 	buf[s++] = c;
   }
