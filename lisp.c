@@ -351,7 +351,7 @@ static inline Cell * print_eval (Cell * cell, Cell ** env) {
 	printf("lambda function");
 	break;
   case TCONS:
-	printf("cons cell");
+	print_eval(eval(cell, env), env);
 	break;
   case TSYMBOL:
 	print_eval(find_symbol(cell, env), env);
@@ -362,7 +362,7 @@ static inline Cell * print_eval (Cell * cell, Cell ** env) {
   default:
 	printf("print nothing");
   }
-  if (cell->type_ != TSYMBOL)
+  if (cell->type_ != TSYMBOL && cell->type_ != TCONS)
 	printf("\n");
   return make_cell(&(Cell){TUNIT});
 }
