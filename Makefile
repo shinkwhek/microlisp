@@ -18,8 +18,8 @@ debug: $(FILE)
 	$(CC) $(FLAG) -g $^ -o $(BIN)/debug
 	sudo gdb $(BIN)/debug
 
-test: all test/*.lisp
-	prove -j 4 test/*.lisp
+test: all test/*.scm
+	prove -j 4 test/*.scm
 
 clean:
 	$(RM) *.o $(BIN)/$(LISP) $(BIN)/debug*

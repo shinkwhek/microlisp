@@ -63,18 +63,22 @@ static Cell * cell_symbol (char * a) {
 /* ---- ---- lex tools ---- ---- */
 #define next \
   do { c = fgetc(fp); } while(0)
+#define skip \
+  do { next; } while(c != '\n')
 
-static int show_next (void) {
+static inline int show_next (void) {
   int a = fgetc(fp);
   ungetc(a, fp);
   return a;
 }
-static Cell * read_int (int a) {
+static Cell * read_int (int a, int neg) {
   int b = a - '0';
   while (isdigit(show_next())){
 	next;
 	b = b * 10 + (c - '0');
   }
+  if (neg == 1)
+	b = -b;
   return cell_int(b);
 }
 static Cell * read_symbol (char a) {
@@ -93,12 +97,20 @@ static Cell * read_symbol (char a) {
 static Cell * parse (void) {
   for(;;) {
 	next;
+	if (c == ';') // comment
+	  skip;
 	if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
 	  continue;
 	if (c == EOF)
 	  return Nil;
+	if (c == '-' && isdigit(show_next())) {
+	  next;
+	  Cell * r = read_int(c, 1);
+	  r->cdr_ = parse();
+	  return r;
+	}
 	if (isdigit(c)) {
-	  Cell * r = read_int(c);
+	  Cell * r = read_int(c, 0);
 	  r->cdr_  = parse();
 	  return r;
 	}
@@ -379,8 +391,8 @@ int main (int argv, char* argc[])
   }
   
   if (argc[1]){
-	if (strcmp( ".lisp" ,strstr(argc[1],".") ) != 0)
-	  perror("file format is not .lisp");
+	if (strcmp( ".scm" ,strstr(argc[1],".") ) != 0)
+	  perror("file format is not .scm");
 	else {
 	  fp = fopen(argc[1], "r");
 	  Cell * R = parse();
