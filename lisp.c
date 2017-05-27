@@ -139,6 +139,7 @@ static inline Cell * plus_eval   (Cell*, Cell**);
 static inline Cell * minus_eval  (Cell*, Cell**);
 static inline Cell * time_eval   (Cell*, Cell**);
 static inline Cell * divid_eval  (Cell*, Cell**);
+static inline Cell * mod_eval    (Cell*, Cell**);
 static inline Cell * great_eval  (Cell*, Cell**);
 static inline Cell * less_eval   (Cell*, Cell**);
 static inline Cell * equal_eval  (Cell*, Cell**);
@@ -172,6 +173,7 @@ static Cell * apply (Cell * cell, Cell * args, Cell ** env) {
 	primitive(minus,       -);
 	primitive(time,        *);
 	primitive(divid,       /);
+	primitive(mod,       mod);
 	primitive(great,       >);
 	primitive(less,        <);
 	primitive(equal,       =);
@@ -274,6 +276,11 @@ static inline Cell * divid_eval (Cell * cell, Cell ** env) {
 	  printf("arg isnot 'TINT' for '/' symbols\n");
   }
   return cell_int(result);
+}
+static inline Cell * mod_eval (Cell * cell, Cell ** env) {
+  Cell * L = eval(cell,       env);
+  Cell * R = eval(cell->cdr_, env);
+  return cell_int(L->int_ % R->int_);
 }
 // (> _ _)
 static inline Cell * great_eval (Cell * cell, Cell ** env) {
