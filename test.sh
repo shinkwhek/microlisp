@@ -39,5 +39,6 @@ run test/real_time.scm "1.860000"
 run test/real_dev.scm "1.500000"
 run test/recursion.scm "7"
 run test/newton.scm "2.236069"
+run test/ackermann.scm "13"
 
 echo "All tests were done."
