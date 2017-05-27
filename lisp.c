@@ -88,9 +88,14 @@ static Cell * read_num (int a, int neg) {
   if (show_next() == '.') {
 	int_or_real = 1;
 	next;
+	int k = 0;
 	while(isdigit(show_next())) {
 	  next;
-	  br = br + ((float)(c - '0') / 10.0); // real
+	  k++;
+	  br = br * 10.0 + (float)(c - '0'); // real
+	}
+	for(int p = 0; p < k; p++) {
+	  br = br / 10.0;
 	}
   }
   if (neg == 1)
@@ -225,7 +230,7 @@ static Cell * eval (Cell * cell, Cell ** env) {
   switch(cell->type_){
   case TUNIT: case TENV:
 	break;
-  case TNIL: case TTRUE: case TFALSE: case TINT: case TFUN:
+  case TNIL: case TTRUE: case TFALSE: case TINT: case TREAL: case TFUN:
 	return cell;
   case TCONS:
 	return apply( eval(cell->car_,env), cell->car_->cdr_, env);
@@ -384,6 +389,9 @@ static inline Cell * print_eval (Cell * cell, Cell ** env) {
 	break;
   case TINT:
 	printf("%d", cell->int_);
+	break;
+  case TREAL:
+	printf("%f", cell->real_);
 	break;
   case TFUN:
 	printf("lambda function");
