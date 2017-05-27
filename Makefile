@@ -1,7 +1,7 @@
 
 CC	= gcc
 LISP	= lisp
-FLAG	= -Wall -O0
+FLAG	= -Wall -O0 -std=gnu99
 
 FILE	= lisp.c
 
