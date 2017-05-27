@@ -7,5 +7,4 @@
 (define (my_lcd a b)
   (/ (* b a) (my_gcd a b)))
 
-(print (my_gcd 35 21))
-(print (my_lcd 7 23))
+(print (/ (my_lcd 7 31) (my_gcd 35 21)))

@@ -4,5 +4,4 @@
 (define x (f 3))
 (define y (g 3 4))
 
-(print x)
-(print y)
+(print (+ x y))

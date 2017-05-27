@@ -243,63 +243,117 @@ static Cell * eval (Cell * cell, Cell ** env) {
 
 // (+ _ ...)
 static inline Cell * plus_eval (Cell * cell, Cell ** env) {
-  int result = 0;
-  for (Cell * p = cell; p != Nil; p = p->cdr_) {
+  int   result   = 0;
+  float result_r = 0;
+  int type;
+  Cell * Tp = eval(cell, env);
+  if (Tp->type_ == TINT)   // setting type && culc
+	result += Tp->int_;
+  else if (Tp->type_ == TREAL)
+	result_r += Tp->real_;
+  type = Tp->type_;
+  for (Cell * p = cell->cdr_; p != Nil; p = p->cdr_) { // culc
 	Cell * T = eval(p, env);
-	if (T->type_ == TINT)
+	if (T->type_ == TINT && type == TINT)
 	  result += T->int_;
+	else if (T->type_ == TREAL && type == TREAL)
+	  result_r += T->real_;
 	else
-	  printf("arg isnot 'TINT' for '+' symbols\n");
+	  perror("type error in '+'.");
   }
-  return cell_int(result);
+  if (type == TINT)
+	return cell_int(result);
+  else
+	return cell_real(result_r);
 }
 // (- _ ...)
 static inline Cell * minus_eval (Cell * cell, Cell ** env) {
   Cell * p = eval(cell,env);
-  int result = p->int_;
-  for (p = cell->cdr_; p != Nil; p = p->cdr_) {
+  int   result;
+  float result_r;
+  if (p->type_ == TINT) // check type
+	result = p->int_;
+  else if (p->type_ == TREAL)
+	result_r = p->real_;
+  int type = p->type_;
+  for (p = cell->cdr_; p != Nil; p = p->cdr_) { // culc
 	Cell * T = eval(p, env);
-	if (T->type_ == TINT)
+	if (T->type_ == TINT && type == TINT)
 	  result -= T->int_;
+	else if (T->type_ == TREAL && type == TREAL)
+	  result_r -= T->real_;
 	else
-	  printf("arg isnot 'TINT' for '-' symbols\n");
+	  perror("type error in '-'.");
   }
-  return cell_int(result);
+  if (type == TINT)
+	return cell_int(result);
+  else
+	return cell_real(result_r);
 }
 // (* _ ...)
 static inline Cell * time_eval (Cell * cell, Cell ** env) {
-  int result = 1;
-  for (Cell * p = cell; p != Nil; p = p->cdr_) {
+  int   result = 1;
+  float result_r = 1.0;
+  Cell * Tp = eval(cell, env);
+  if (Tp->type_ == TINT)
+	result *= Tp->int_;
+  else if (Tp->type_ == TREAL)
+	result_r *= Tp->real_;
+  int type = Tp->type_;
+  for (Cell * p = cell->cdr_; p != Nil; p = p->cdr_) {
 	Cell * T = eval(p, env);
-	if (T->type_ == TINT){
-	  if (T->int_)
+	if (T->type_ == TINT && type == TINT){
+	  if (T->int_ != 0)
 		result *= T->int_;
 	  else
 		return cell_int(0);
 	}
+	else if (T->type_ == TREAL && type == TREAL) {
+	  if (T->real_ != 0)
+		result_r *= T->real_;
+	  else
+		return cell_real(0);
+	}
 	else
-	  printf("arg isnot 'TINT' for '*' symbols\n");
+	  perror("type error in '*'.");
   }
-  return cell_int(result);
+  if (type == TINT)
+	return cell_int(result);
+  else
+	return cell_real(result_r);
 }
 // (/ _ ...)
 static inline Cell * divid_eval (Cell * cell, Cell ** env) {
   Cell * p = eval(cell,env);
-  int result = p->int_;
+  int type = p->type_;
+  int result;
+  float result_r;
+  if (type == TINT)
+	result = p->int_;
+  else if (type == TREAL)
+	result_r = p->real_;
   for (p = cell->cdr_; p != Nil; p = p->cdr_){
 	Cell * T = eval(p,env);
-	if (T->type_ == TINT) {
-	  if (T->int_)
+	if (T->type_ == TINT && type == TINT) {
+	  if (T->int_ != 0)
 		result /= T->int_;
 	  else{
-		printf("divided not have 0\n");
-		return cell_int(0);
+		perror("divided not have 0");
+	  }
+	}else if (T->type_ == TREAL && type == TREAL) {
+	  if (T->real_ != 0.0)
+		result_r /= T->real_;
+	  else{
+		perror("divided not have 0");
 	  }
 	}
 	else
-	  printf("arg isnot 'TINT' for '/' symbols\n");
+	  printf("type error in '/'.");
   }
-  return cell_int(result);
+  if (type == TINT)
+	return cell_int(result);
+  else
+	return cell_real(result_r);
 }
 static inline Cell * mod_eval (Cell * cell, Cell ** env) {
   Cell * L = eval(cell,       env);
