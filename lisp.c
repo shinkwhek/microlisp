@@ -16,7 +16,8 @@ enum {
   TSYMBOL,
   TCONS,
   TFUN,
-  TINT
+  TINT,
+  TREAL
 };
 
 struct cell_s;
@@ -26,6 +27,7 @@ typedef struct cell_s {
   union {
 	// data
 	int int_;
+	float real_;
 	char * symbol_;
 	struct cell_s * car_;
   };
@@ -52,6 +54,9 @@ static Cell * cell_cons (Cell * cell) {
 static Cell * cell_int (int a) {
   return make_cell(&(Cell){ TINT, .int_=a });
 }
+static Cell * cell_real (float a) {
+  return make_cell(&(Cell){ TREAL, .real_=a});
+}
 static Cell * cell_symbol (char * a) {
   Cell * r = make_cell(&(Cell){ TSYMBOL, .int_ = 0 });
   r->symbol_ = malloc( sizeof(char) * (strlen(a)+1) );
@@ -71,15 +76,29 @@ static inline int show_next (void) {
   ungetc(a, fp);
   return a;
 }
-static Cell * read_int (int a, int neg) {
-  int b = a - '0';
+static Cell * read_num (int a, int neg) {
+  int int_or_real = 0;
+  int b    = a - '0';          // int
+  float br = (float)(a - '0'); // real
   while (isdigit(show_next())){
 	next;
-	b = b * 10 + (c - '0');
+	b  = b  * 10 + (int)(c - '0');   // int
+	br = br * 10 + (float)(c - '0'); // real
+  }
+  if (show_next() == '.') {
+	int_or_real = 1;
+	next;
+	while(isdigit(show_next())) {
+	  next;
+	  br = br + ((float)(c - '0') / 10.0); // real
+	}
   }
   if (neg == 1)
 	b = -b;
-  return cell_int(b);
+  if (int_or_real == 0)
+	return cell_int(b);
+  else
+	return cell_real(br);
 }
 static Cell * read_symbol (char a) {
   char buf[256];
@@ -105,12 +124,12 @@ static Cell * parse (void) {
 	  return Nil;
 	if (c == '-' && isdigit(show_next())) {
 	  next;
-	  Cell * r = read_int(c, 1);
+	  Cell * r = read_num(c, 1);
 	  r->cdr_ = parse();
 	  return r;
 	}
 	if (isdigit(c)) {
-	  Cell * r = read_int(c, 0);
+	  Cell * r = read_num(c, 0);
 	  r->cdr_  = parse();
 	  return r;
 	}
