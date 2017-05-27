@@ -167,6 +167,8 @@ static inline Cell * mod_eval    (Cell*, Cell**);
 static inline Cell * great_eval  (Cell*, Cell**);
 static inline Cell * less_eval   (Cell*, Cell**);
 static inline Cell * equal_eval  (Cell*, Cell**);
+static inline Cell * and_eval    (Cell*, Cell**);
+static inline Cell * or_eval     (Cell*, Cell**);
 static inline Cell * if_eval     (Cell*, Cell**);
 static inline Cell * car_eval    (Cell*, Cell**);
 static inline Cell * cdr_eval    (Cell*, Cell**);
@@ -201,6 +203,8 @@ static Cell * apply (Cell * cell, Cell * args, Cell ** env) {
 	primitive(great,       >);
 	primitive(less,        <);
 	primitive(equal,       =);
+	primitive(and,       and);
+	primitive(or,         or);
 	primitive(if,         if);
 	primitive(car,       car);
 	primitive(cdr,       cdr);
@@ -397,6 +401,24 @@ static inline Cell * equal_eval (Cell * cell, Cell ** env) {
 	return (L->real_ == R->real_) ? TRUE : FALSE;
   printf("equal error\n");
   return Nil;
+}
+// (and _ ...)
+static inline Cell * and_eval (Cell * cell, Cell ** env) {
+  for (Cell * p = cell; p != Nil; p=p->cdr_) {
+	Cell * T = eval(p, env);
+	if (T == FALSE)
+	  return FALSE;
+  }
+  return TRUE;
+}
+// (or _ ...)
+static inline Cell * or_eval (Cell * cell, Cell ** env) {
+  for (Cell * p = cell; p != Nil; p=p->cdr_) {
+	Cell * T = eval(p, env);
+	if (T == TRUE)
+	  return TRUE;
+  }
+  return FALSE;
 }
 // (if _ _ _)
 static inline Cell * if_eval (Cell * cell, Cell ** env) {
