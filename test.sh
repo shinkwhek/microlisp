@@ -11,6 +11,8 @@ function run() {
 }
 
 run test/bool.scm "#f"
+run test/bool_real1.scm "#f"
+run test/bool_real2.scm "#t"
 run test/EuclideanAlgorithm.scm "31"
 run test/comment.scm "3"
 run test/cul.scm "-544"

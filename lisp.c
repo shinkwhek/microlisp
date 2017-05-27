@@ -358,32 +358,43 @@ static inline Cell * divid_eval (Cell * cell, Cell ** env) {
 static inline Cell * mod_eval (Cell * cell, Cell ** env) {
   Cell * L = eval(cell,       env);
   Cell * R = eval(cell->cdr_, env);
-  return cell_int(L->int_ % R->int_);
+  int type = L->type_;
+  if (type == TINT && R->type_ == TINT)
+	return cell_int(L->int_ % R->int_);
+  else
+	perror("type errpr in 'mod'.");
+  return Nil;
 }
 // (> _ _)
 static inline Cell * great_eval (Cell * cell, Cell ** env) {
   Cell * L = eval(cell,       env);
   Cell * R = eval(cell->cdr_, env);
-  if (L->type_ == TINT)
+  if (L->type_ == TINT && R->type_ == TINT)
 	return (L->int_ > R->int_) ? TRUE : FALSE;
-  printf("greater error\n");
+  else if (L->type_ == TREAL && R->type_ == TREAL)
+	return (L->real_ > R->real_) ? TRUE : FALSE;
+  perror("type error in '>'");
   return Nil;
 }
 // (< _ _)
 static inline Cell * less_eval (Cell * cell, Cell ** env) {
   Cell * L = eval(cell,       env);
   Cell * R = eval(cell->cdr_, env);
-  if (L->type_ == TINT)
+  if (L->type_ == TINT && R->type_ == TINT)
 	return (L->int_ < R->int_) ? TRUE : FALSE;
-  printf("less error\n");
+  else if (L->type_ == TREAL && R->type_ ==TREAL)
+	return (L->real_ < R->real_) ? TRUE : FALSE;
+  perror("type error in '<'");
   return Nil;
 }
 // (= _ _)
 static inline Cell * equal_eval (Cell * cell, Cell ** env) {
   Cell * L = eval(cell,       env);
   Cell * R = eval(cell->cdr_, env);
-  if (L->type_ == TINT)
+  if (L->type_ == TINT && R->type_ == TINT)
 	return (L->int_ == R->int_) ? TRUE : FALSE;
+  else if (L->type_ == TREAL && R->type_ == TREAL)
+	return (L->real_ == R->real_) ? TRUE : FALSE;
   printf("equal error\n");
   return Nil;
 }
