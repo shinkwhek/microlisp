@@ -5,6 +5,7 @@
 
 FILE * fp;
 int c;		// current
+int flag_list;
 
 /* ==== ==== ==== type ==== ==== ==== */
 enum {
@@ -15,6 +16,7 @@ enum {
   TFALSE,
   TSYMBOL,
   TCONS,
+  TLIST,
   TFUN,
   TINT,
   TREAL
@@ -51,6 +53,9 @@ static Cell * make_cell (Cell * cell) {
 static Cell * cell_cons (Cell * cell) {
   return make_cell(&(Cell){ TCONS, .car_ = cell });
 }
+static Cell * cell_list (Cell * cell) {
+  return make_cell(&(Cell){ TLIST, .car_ = cell });
+}
 static Cell * cell_int (int a) {
   return make_cell(&(Cell){ TINT, .int_=a });
 }
@@ -76,7 +81,8 @@ static inline int show_next (void) {
   ungetc(a, fp);
   return a;
 }
-static Cell * read_num (int a, int neg) {
+
+static Cell * parse_num (int a, int neg) {
   int int_or_real = 0;
   int b    = a - '0';          // int
   float br = (float)(a - '0'); // real
@@ -109,7 +115,8 @@ static Cell * read_num (int a, int neg) {
   else
 	return cell_real(br);
 }
-static Cell * read_symbol (char a) {
+
+static Cell * parse_symbol (char a) {
   char buf[256];
   buf[0] = a;
   int s = 1;
@@ -133,25 +140,32 @@ static Cell * parse (void) {
 	  return Nil;
 	if (c == '-' && isdigit(show_next())) {
 	  next;
-	  Cell * r = read_num(c, 1);
+	  Cell * r = parse_num(c, 1);
 	  r->cdr_ = parse();
 	  return r;
 	}
 	if (isdigit(c)) {
-	  Cell * r = read_num(c, 0);
+	  Cell * r = parse_num(c, 0);
 	  r->cdr_  = parse();
 	  return r;
 	}
 	if (isalpha(c) || strchr(symbols,c)) {
-	  Cell * r = read_symbol(c);
+	  Cell * r = parse_symbol(c);
 	  r->cdr_  = parse();
 	  return r;
 	}
 	if (c == '\'' && show_next() == '(') {
 	  next;
+	  flag_list = 1;
+	  Cell * r = cell_list(parse());
+	  flag_list = 0;
+	  r->cdr_ = parse();
+	  return r;
 	}
 	if (c == '(') {
-	  Cell * r = cell_cons(parse());
+	  Cell * r;
+	  if (flag_list == 1) r = cell_list(parse());
+	  else                r = cell_cons(parse());
 	  r->cdr_  = parse();
 	  return r;
 	}
@@ -238,7 +252,7 @@ static Cell * eval (Cell * cell, Cell ** env) {
   switch(cell->type_){
   case TUNIT: case TENV:
 	break;
-  case TNIL: case TTRUE: case TFALSE: case TINT: case TREAL: case TFUN:
+  case TNIL: case TTRUE: case TFALSE: case TINT: case TREAL: case TFUN: case TLIST:
 	return cell;
   case TCONS:
 	return apply( eval(cell->car_,env), cell->car_->cdr_, env);
@@ -274,6 +288,7 @@ static inline Cell * plus_eval (Cell * cell, Cell ** env) {
   else
 	return cell_real(result_r);
 }
+
 // (- _ ...)
 static inline Cell * minus_eval (Cell * cell, Cell ** env) {
   Cell * p = eval(cell,env);
@@ -298,6 +313,7 @@ static inline Cell * minus_eval (Cell * cell, Cell ** env) {
   else
 	return cell_real(result_r);
 }
+
 // (* _ ...)
 static inline Cell * time_eval (Cell * cell, Cell ** env) {
   int   result = 1;
@@ -330,6 +346,7 @@ static inline Cell * time_eval (Cell * cell, Cell ** env) {
   else
 	return cell_real(result_r);
 }
+
 // (/ _ ...)
 static inline Cell * divid_eval (Cell * cell, Cell ** env) {
   Cell * p = eval(cell,env);
@@ -363,6 +380,7 @@ static inline Cell * divid_eval (Cell * cell, Cell ** env) {
   else
 	return cell_real(result_r);
 }
+
 static inline Cell * mod_eval (Cell * cell, Cell ** env) {
   Cell * L = eval(cell,       env);
   Cell * R = eval(cell->cdr_, env);
@@ -373,6 +391,7 @@ static inline Cell * mod_eval (Cell * cell, Cell ** env) {
 	perror("type errpr in 'mod'.");
   return Nil;
 }
+
 // (> _ _)
 static inline Cell * great_eval (Cell * cell, Cell ** env) {
   Cell * L = eval(cell,       env);
@@ -384,6 +403,7 @@ static inline Cell * great_eval (Cell * cell, Cell ** env) {
   perror("type error in '>'");
   return Nil;
 }
+
 // (< _ _)
 static inline Cell * less_eval (Cell * cell, Cell ** env) {
   Cell * L = eval(cell,       env);
@@ -395,6 +415,7 @@ static inline Cell * less_eval (Cell * cell, Cell ** env) {
   perror("type error in '<'");
   return Nil;
 }
+
 // (= _ _)
 static inline Cell * equal_eval (Cell * cell, Cell ** env) {
   Cell * L = eval(cell,       env);
@@ -406,6 +427,7 @@ static inline Cell * equal_eval (Cell * cell, Cell ** env) {
   printf("equal error\n");
   return Nil;
 }
+
 // (and _ ...)
 static inline Cell * and_eval (Cell * cell, Cell ** env) {
   for (Cell * p = cell; p != Nil; p=p->cdr_) {
@@ -415,6 +437,7 @@ static inline Cell * and_eval (Cell * cell, Cell ** env) {
   }
   return TRUE;
 }
+
 // (or _ ...)
 static inline Cell * or_eval (Cell * cell, Cell ** env) {
   for (Cell * p = cell; p != Nil; p=p->cdr_) {
@@ -424,6 +447,7 @@ static inline Cell * or_eval (Cell * cell, Cell ** env) {
   }
   return FALSE;
 }
+
 // (if _ _ _)
 static inline Cell * if_eval (Cell * cell, Cell ** env) {
   Cell * p = eval(cell,env);
@@ -435,18 +459,22 @@ static inline Cell * if_eval (Cell * cell, Cell ** env) {
   printf("if error\n");
   return Nil;
 }
+
 // (car _)
 static inline Cell * car_eval (Cell * cell, Cell ** env) {
   return cell->car_;
 }
+
 // (cdr _)
 static inline Cell * cdr_eval (Cell * cell, Cell ** env) {
   return cell->car_->cdr_;
 }
+
 // (lambda (_ ...) _)
 static inline Cell * lambda_eval (Cell * cell, Cell ** env) {
   return make_cell(&(Cell){ TFUN, .car_=cell->car_, .cdr_=cell->cdr_ });
 }
+
 // (define _ _)
 static inline Cell * def_eval (Cell * cell, Cell ** env) {
   Cell * new_env = NULL;
@@ -466,41 +494,37 @@ static inline Cell * def_eval (Cell * cell, Cell ** env) {
   }
   return new_env;
 }
+
 // (print _)
-static inline Cell * print_eval (Cell * cell, Cell ** env) {
+static inline void print_eval_iter (Cell * cell, Cell ** env) {
   switch(cell->type_) {
-  case TNIL:
-	printf("nil");
-	break;
-  case TTRUE:
-	printf("#t");
-	break;
-  case TFALSE:
-	printf("#f");
-	break;
-  case TINT:
-	printf("%d", cell->int_);
-	break;
-  case TREAL:
-	printf("%f", cell->real_);
-	break;
-  case TFUN:
-	printf("lambda function");
-	break;
-  case TCONS:
-	print_eval(eval(cell, env), env);
-	break;
+  case TNIL:    printf("nil");                         break;
+  case TTRUE:   printf("#t");                          break;
+  case TFALSE:  printf("#f");                          break;
+  case TINT:    printf("%d", cell->int_);              break;
+  case TREAL:   printf("%f", cell->real_);             break;
+  case TFUN:    printf("lambda function");             break;
+  case TCONS:   print_eval_iter(eval(cell, env), env); break;
+  case TLIST: {
+	printf("\(");
+	 for (Cell * r = cell->car_; r != Nil; r = r->cdr_) {
+	   print_eval_iter(r, env);
+	   if (r->cdr_ != Nil) printf(" ");
+	 }
+	 printf(")");
+	 break;
+  }
   case TSYMBOL:
-	print_eval(find_symbol(cell, env), env);
-	break;
+	print_eval_iter(find_symbol(cell, env), env);  break;
   case TENV:
-	printf("env");
-	break;
+	printf("env");   break;
   default:
 	printf("print nothing");
   }
-  if (cell->type_ != TSYMBOL && cell->type_ != TCONS)
-	printf("\n");
+}
+static inline Cell * print_eval (Cell * cell, Cell ** env) {
+  print_eval_iter(cell, env);
+  printf("\n");
   return make_cell(&(Cell){TUNIT});
 }
 /* ==== ==== ==== ==== ==== ==== ==== */
@@ -509,7 +533,8 @@ static inline Cell * print_eval (Cell * cell, Cell ** env) {
 int main (int argv, char* argc[])
 {
   Cell * E = Nil;
-
+  flag_list = 0;
+  
   if (argv <= 1) {
 	perror("no input file.");
 	exit(1);
