@@ -190,6 +190,7 @@ static inline Cell * or_eval     (Cell*, Cell**);
 static inline Cell * if_eval     (Cell*, Cell**);
 static inline Cell * car_eval    (Cell*, Cell**);
 static inline Cell * cdr_eval    (Cell*, Cell**);
+static inline Cell * list_eval   (Cell*, Cell**);
 static inline Cell * def_eval    (Cell*, Cell**);
 static inline Cell * lambda_eval (Cell*, Cell**);
 static inline Cell * print_eval  (Cell*, Cell**);
@@ -226,6 +227,7 @@ static Cell * apply (Cell * cell, Cell * args, Cell ** env) {
 	primitive(if,         if);
 	primitive(car,       car);
 	primitive(cdr,       cdr);
+	primitive(list,     list);
 	primitive(def,    define);
 	primitive(lambda, lambda);
 	primitive(print,   print);
@@ -473,6 +475,17 @@ static inline Cell * cdr_eval (Cell * cell, Cell ** env) {
 // (lambda (_ ...) _)
 static inline Cell * lambda_eval (Cell * cell, Cell ** env) {
   return make_cell(&(Cell){ TFUN, .car_=cell->car_, .cdr_=cell->cdr_ });
+}
+
+// (list ...)
+static inline Cell * list_eval (Cell * cell, Cell ** env) {
+  Cell * r = eval(cell,env);
+  Cell * p = r;
+  for (Cell * t = cell->cdr_; t != Nil; t = t->cdr_) {
+	r->cdr_ = eval(t, env);
+	r = r->cdr_;
+  }
+  return cell_list(p);
 }
 
 // (define _ _)

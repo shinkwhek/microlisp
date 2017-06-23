@@ -1,3 +1,1 @@
-(define f '(1 2))
-
-(print f)
+(print (list 1 2))
