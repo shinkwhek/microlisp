@@ -10,7 +10,7 @@
   (average a (/ b a)))
 
 (define (good? guess x)
-  (< (abs (- (square guess) x)) 0.001))
+  (< (abs (- (square guess) x)) 0.00001))
 
 (define (sqrt-iter guess x)
   (if (good? guess x)

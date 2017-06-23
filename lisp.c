@@ -98,8 +98,12 @@ static Cell * read_num (int a, int neg) {
 	  br = br / 10.0;
 	}
   }
-  if (neg == 1)
-	b = -b;
+  if (neg == 1) {
+	if (int_or_real == 0)
+	  b = -b;
+	else
+	  br = -br;
+  }
   if (int_or_real == 0)
 	return cell_int(b);
   else
