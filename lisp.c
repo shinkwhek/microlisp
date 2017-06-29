@@ -510,7 +510,7 @@ static inline void print_eval_iter (Cell * cell, Cell ** env) {
     case TFUN:    printf("lambda function");             break;
     case TCONS:   print_eval_iter(eval(cell, env), env); break;
     case TLIST: {
-                  printf("\(");
+                  printf("(");
                   for (Cell * r = cell->car_; r != Nil; r = r->cdr_) {
                     print_eval_iter(r, env);
                     if (r->cdr_ != Nil) printf(" ");
