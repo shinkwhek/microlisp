@@ -2,4 +2,5 @@
 DEBUG
 DEBUG.dSYM
 lisp
+TAGS
 *.o
