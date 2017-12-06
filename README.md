@@ -11,6 +11,8 @@ This is a Lisp interpreter, which is so small, easy to read and understand.
 ## BUILD
 
 ```console
+$ cmake .
+
 $ make
 ```
 
@@ -23,7 +25,7 @@ $ ./bin/lisp <file>
 ### TEST
 
 ```console
-$ make test
+$ cat test.sh | bash
 ```
 
 ### CLEAN
