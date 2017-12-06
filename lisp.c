@@ -534,27 +534,31 @@ static inline Cell * print_eval (Cell * cell, Cell ** env) {
 /* ==== ==== ==== ==== ==== ==== ==== */
 
 /* ==== ==== ==== main loop ==== ==== ==== */
-int main (int argv, char* argc[])
+static void file_read_mode(char* argv[], Cell* E) {
+  fp = fopen(argv[1], "r");
+  Cell * R = parse();
+  do {
+    eval(R, &E);
+    R = R->cdr_;
+  } while( R != Nil );
+}
+
+int main (int argc, char* argv[])
 {
   Cell * E = Nil;
   flag_list = 0;
 
-  if (argv <= 1) {
+  if (argc <= 1) {
     perror("no input file.");
     exit(1);
   }
 
-  if (argc[1]){
-    if (strcmp( ".scm" ,strstr(argc[1],".") ) != 0)
+  if (argv[1]){
+    if (strcmp( ".scm" ,strstr(argv[1],".") ) != 0)
       perror("file format is not .scm");
     else {
-      fp = fopen(argc[1], "r");
-      Cell * R = parse();
-      do {
-        eval(R, &E);
-        R = R->cdr_;
-      } while( R != Nil );
-    }
+      file_read_mode(argv, E);
+   }
   }
 
   return 0;
