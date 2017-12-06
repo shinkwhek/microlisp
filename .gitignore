@@ -1,4 +1,8 @@
 .DS_Store
+CMakeCache.txt
+CMakeFiles
+cmake_install.cmake
+Makefile
 DEBUG
 DEBUG.dSYM
 lisp
