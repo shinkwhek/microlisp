@@ -127,8 +127,10 @@ static Cell * parse_symbol (char a) {
 static Cell * parse (void) {
   for(;;) {
     next;
-    if (c == ';') // comment
+    if (c == ';') { // comment
       skip;
+      continue;
+    }
     if (c == ' ' || c == '\t' || c == '\n' || c == '\r')
       continue;
     if (c == EOF)
