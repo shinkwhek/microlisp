@@ -45,7 +45,11 @@ static const char symbols[] = "+-*/!?=<>_:\\%#~&";
 
 /* ---- ---- make cell ---- ---- */
 static Cell * make_cell (Cell * cell) {
-  Cell * r = malloc( 1 * sizeof(Cell) );
+  Cell * r;
+  if ((r = malloc(1 * sizeof(Cell))) == NULL) {
+    printf("[error]: malloc\n");
+    exit(-1);
+  }
   *r = *cell;
   return r;
 }
