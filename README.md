@@ -6,7 +6,7 @@ Small LISP Interpreter.
 
 ## Documentation
 
-This is a Lisp interpreter, which is so small, easy to read and understand.
+This is a Lisp interpreter, which is so small, easy to read and understand. (no GC)
 
 ## BUILD
 
